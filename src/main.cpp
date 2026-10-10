@@ -8,6 +8,7 @@
 #include <sailfishapp.h>
 
 #include "library/librarymodel.h"
+#include "player/player.h"
 #include "sources/source.h"
 #include "sources/sources.h"
 
@@ -27,11 +28,13 @@ int main(int argc, char *argv[])
                                         QStringLiteral("One list of sources for the app"));
 
     Sources sources;
+    Player player(&sources);
 
     QScopedPointer<QQuickView> view(SailfishApp::createView());
     view->rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                             QStringLiteral(APP_VERSION));
     view->rootContext()->setContextProperty(QStringLiteral("sources"), &sources);
+    view->rootContext()->setContextProperty(QStringLiteral("player"), &player);
     view->setSource(SailfishApp::pathToMainQml());
     view->show();
     return app->exec();

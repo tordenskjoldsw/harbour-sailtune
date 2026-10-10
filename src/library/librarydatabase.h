@@ -2,6 +2,7 @@
 #define LIBRARYDATABASE_H
 
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QVector>
 
@@ -78,6 +79,9 @@ public:
     QVariantList searchArtists(const QString &term) const;
     QVariantList searchAlbums(const QString &term) const;
     QVariantList searchTracks(const QString &term) const;
+    // The tracks with these ids in this order; ids no longer cached are
+    // left out.
+    QVariantList tracksByIds(const QStringList &ids) const;
 
 private:
     int count(const char *table) const;

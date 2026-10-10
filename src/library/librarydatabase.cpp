@@ -250,6 +250,20 @@ QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId) const
                   {playlistId});
 }
 
+QVariantList LibraryDatabase::tracksByIds(const QStringList &ids) const
+{
+    QVariantList tracks;
+    for (const QString &id : ids) {
+        const QVariantList found = select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
+                                              + QStringLiteral(" FROM tracks t LEFT JOIN albums a"
+                                                               " ON a.id = t.album_id WHERE t.id = ?"),
+                                          {id});
+        if (!found.isEmpty())
+            tracks.append(found.first());
+    }
+    return tracks;
+}
+
 QVariantList LibraryDatabase::searchArtists(const QString &term) const
 {
     return select(QStringLiteral("SELECT id, name AS title, image FROM artists"

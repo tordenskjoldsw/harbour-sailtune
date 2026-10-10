@@ -1,11 +1,12 @@
 TARGET = harbour-sailtune
 
 CONFIG += sailfishapp
-QT += network sql dbus concurrent
+QT += network sql dbus concurrent multimedia
 
 HEADERS += \
     src/library/librarydatabase.h \
     src/library/librarymodel.h \
+    src/player/player.h \
     src/sources/phonesource.h \
     src/sources/source.h \
     src/sources/sources.h
@@ -14,6 +15,7 @@ SOURCES += \
     src/main.cpp \
     src/library/librarydatabase.cpp \
     src/library/librarymodel.cpp \
+    src/player/player.cpp \
     src/sources/phonesource.cpp \
     src/sources/source.cpp \
     src/sources/sources.cpp
@@ -29,6 +31,7 @@ QMAKE_LFLAGS += -Wl,-z,relro,-z,now -s
 DISTFILES += \
     qml/harbour-sailtune.qml \
     qml/components/AlbumArt.qml \
+    qml/components/MiniPlayer.qml \
     qml/components/TwoLineItem.qml \
     qml/cover/CoverPage.qml \
     qml/pages/AlbumPage.qml \
@@ -36,6 +39,7 @@ DISTFILES += \
     qml/pages/ArtistPage.qml \
     qml/pages/ArtistsPage.qml \
     qml/pages/LibraryPage.qml \
+    qml/pages/NowPlayingPage.qml \
     qml/pages/PlaylistPage.qml \
     qml/pages/PlaylistsPage.qml \
     qml/pages/SearchPage.qml \
