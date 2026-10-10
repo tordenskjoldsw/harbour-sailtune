@@ -13,8 +13,8 @@ code with them; their build, release and Harbour experience carries over
 
 A native, open-source music player for Sailfish OS, published in the
 Jolla Store, for the music on the user's own server: Jellyfin, or any
-server that speaks OpenSubsonic (Navidrome, Gonic, Airsonic, Ampache,
-Nextcloud Music and others). It streams
+server that speaks OpenSubsonic with API keys (such as Navidrome; which
+others offer API keys is checked in Phase 2). It streams
 while the server is reachable (at home or over a VPN) and plays albums
 and playlists downloaded to the phone without any network. It replaces a
 streaming subscription for people who keep their music themselves.
@@ -32,7 +32,7 @@ streaming subscription for people who keep their music themselves.
 | 1 | In Harbour | RPM passes the Harbour validator for aarch64 and armv7hl; Jolla QA accepts it |
 | 2 | Offline first | Downloaded music plays with no network and no login; the app opens on the library from its cache, also offline |
 | 3 | Uninterrupted playback | 60 minutes with the screen off and the phone untouched, from downloads and streamed, without a gap in the playback log; the next track starts by itself |
-| 4 | Credentials | A Jellyfin password is never stored, only its access token; for OpenSubsonic an API key where the server offers one, otherwise as section 14 decides; logging out ends the session where the server has one; no secret in any log |
+| 4 | Credentials | No password is ever stored: Jellyfin keeps its access token, OpenSubsonic its API key, both revocable on the server; logging out ends the session where the server has one; no secret in any log |
 | 5 | No broken downloads | A download is written to a temporary file, checked against the server's size and only then renamed; an interrupted download leaves nothing half-written; the library cache can always be rebuilt from the server |
 | 6 | Bounded input | Every server response has size and count limits; file names come from item ids, never from server text |
 | 7 | Fast daily use | Library visible < 1 s after start from the cache; a downloaded track starts < 0.5 s after the tap |
@@ -134,9 +134,9 @@ Internet; Music only for a later export to the public Music folder.
   asking the user.
 - Jellyfin: server address and user name are kept; the password only
   reaches `/Users/AuthenticateByName` and is never stored.
-- OpenSubsonic: an API key (the `apiKey` extension) where the server
-  offers one; for servers with only the classic login, what is stored is
-  open (section 14).
+- OpenSubsonic: only servers with the `apiKey` extension; the user
+  creates a key on the server and enters it. A server with only the
+  classic login is refused with an explanation (section 14).
 - Jellyfin's Quick Connect (a code shown in the app, approved in another
   Jellyfin client) as a second way to log in, so the password need not
   be typed on the phone (Phase 2, unverified on Jellyfin 12.2).
@@ -233,7 +233,7 @@ Opus files, HTTPS.
 
 The server line with `JellyfinServer` and `SubsonicServer`, adding and
 switching servers, login (Jellyfin password and Quick Connect,
-OpenSubsonic API key or classic login), the SQLite cache with artists,
+OpenSubsonic API key), the SQLite cache with artists,
 albums, tracks and playlists, the library pages and search, cover art
 cache, limits on every response. A Navidrome in Docker on the
 development PC, with made-up or free music, serves as the OpenSubsonic
@@ -294,17 +294,18 @@ editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 14. Open decisions
 
-- **Classic Subsonic login.** A server without the `apiKey` extension
-  needs, on every call, either the password or a salted MD5 token made
-  from it; keeping that token works like keeping the password. Options:
-  store the password in the owner-only file like the Jellyfin token,
-  with a warning in the login page; or support only servers with an API
-  key. To be decided with the Subsonic spike, once it is known which
-  servers offer API keys.
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
 Decided:
+
+- OpenSubsonic login (2026-10-10): only servers that offer API keys (the
+  OpenSubsonic `apiKey` extension). The classic login needs the password
+  or a salted MD5 token made from it on every call, so the app would
+  have to keep something worth as much as the password; the maintainer
+  chose no security compromise, as for SailVault and SailToken. Which
+  servers offer API keys is checked in the OpenSubsonic spike; the
+  servers named in section 1 count only where they do.
 
 - Qt only (2026-10-10): C++ and QML, no Rust core. SailTune keeps no key
   material and needs no crypto; QtNetwork, QtSql and QJsonDocument cover
