@@ -1,10 +1,17 @@
 # SailTune - Project Plan
 
-Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour),
-playback spike on the Jolla Phone mostly done (section 11, Phase 1), v1
-serves Jellyfin, OpenSubsonic follows (section 14). Phase 0 done; the
-phone's music is browsed and played (Phase 2 part one, Phase 3 core).
-Next: the Jellyfin source.
+Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour);
+v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
+14). Done and verified on the Jolla Phone:
+
+- The phone's music with its album art: browse artists, albums and
+  playlists, search, play (Phase 2 part one).
+- The player: mini player on every page with 10-second skips, now
+  playing page, lock screen controls (MPRIS) with seeking, cover
+  actions, and resuming the exact track and position after the app was
+  closed (Phase 3 core, pulled ahead of Jellyfin).
+
+Next: the Jellyfin source (section 11, Phase 2 part two).
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -251,6 +258,26 @@ Opus files, HTTPS.
 
 ### Phase 2 - Sources and library
 
+Part one (the phone, done 2026-10-10): the source line, the SQLite
+cache, the phone's music from the media index, the library pages and
+search.
+
+Part two (Jellyfin, next):
+
+1. Sources page, "Add server": the server's address, checked with
+   `/System/Info/Public`; then user name and password, or Quick
+   Connect. The password is never stored, only the access token, in an
+   owner-only file in the source's folder.
+2. Read the server's library (artists, albums, tracks, playlists) page
+   by page with size limits into the cache, with cover art from the
+   server, so the library also opens without a network.
+3. Stream through the same player (`/Audio/{id}/stream?static=true`
+   with `api_key`, never logged).
+4. A token the server no longer accepts shows only a "log in again"
+   note; nothing is blocked, downloads keep playing.
+
+What part one and two cover together, as first planned:
+
 The source spike (`spikes/sources/`, done) showed the system's media
 index works. Then the source line with `LocalSource` and `JellyfinServer`, adding and switching servers,
 login (password and Quick Connect), the SQLite cache with artists,
@@ -315,7 +342,12 @@ editing playlists, Emby, lyrics, sleep timer, German translation.
 - Validator clean from the first build, both architectures, release
   builds from a clean tag.
 - Qt 5.6 APIs only; QtMultimedia reports the end of a track before it
-  stops.
+  stops, so the next track starts on the stop (spike, 2026-10-10).
+- Sailfish stops the media player when the app closes, and a stopped
+  player reports position 0; swiping the app away may also skip
+  `aboutToQuit`. The position to resume is therefore the last one while
+  playing or paused, saved while playing, on pause and when the app goes
+  to the background (seen on the device, 2026-10-10).
 - Store texts, privacy policy and the AI disclosure belong to the first
   release, not to the last week.
 
