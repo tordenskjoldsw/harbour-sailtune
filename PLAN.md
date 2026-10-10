@@ -31,7 +31,7 @@ streaming subscription for people who keep their music themselves.
 | # | Criterion | Measured by |
 |---|-----------|-------------|
 | 1 | In Harbour | RPM passes the Harbour validator for aarch64 and armv7hl; Jolla QA accepts it |
-| 2 | Offline first | Downloaded music plays with no network and no login; the app opens on the library from its cache, also offline |
+| 2 | Offline first | Downloaded music plays with no network and no login; after the first setup the app opens on the library from its cache, never on a login page, also offline |
 | 3 | Uninterrupted playback | 60 minutes with the screen off and the phone untouched, from downloads and streamed, without a gap in the playback log; the next track starts by itself |
 | 4 | Credentials | No password is ever stored: Jellyfin keeps its access token, OpenSubsonic its API key, both revocable on the server; logging out ends the session where the server has one; no secret in any log |
 | 5 | No broken downloads | A download is written to a temporary file, checked against the server's size and only then renamed; an interrupted download leaves nothing half-written; the library cache can always be rebuilt from the server |
@@ -131,6 +131,12 @@ Nemo.Notifications, Nemo.KeepAlive. Sailjail permissions: Audio and
 Internet; Music only for a later export to the public Music folder.
 
 ## 6. Login and session
+
+- The server is set up once. Only the very first start asks for it;
+  every later start opens the active server's library from the cache,
+  online or not, with no login page in between (maintainer, 2026-10-10).
+- A token the server no longer accepts shows a "log in again" note on
+  the library; it blocks nothing, and the downloads keep playing.
 
 - Adding a server: its address; the app asks the server what it is
   (Jellyfin's `/System/Info/Public`, Subsonic's `ping`) instead of
