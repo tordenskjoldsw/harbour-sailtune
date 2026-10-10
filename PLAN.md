@@ -2,8 +2,9 @@
 
 Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour),
 playback spike on the Jolla Phone mostly done (section 11, Phase 1), v1
-serves Jellyfin, OpenSubsonic follows (section 14), Phase 0 done. Next:
-Phase 2.
+serves Jellyfin, OpenSubsonic follows (section 14). Phase 0 done; the
+phone's music is browsed and played (Phase 2 part one, Phase 3 core).
+Next: the Jellyfin source.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -257,7 +258,14 @@ albums, tracks and playlists, the library pages and search, cover art
 cache, limits on every response. Tested against the maintainer's
 Jellyfin.
 
-### Phase 3 - Player
+### Phase 3 - Player (pulled before Jellyfin, core done 2026-10-10)
+
+Pulled ahead on 2026-10-10 so the phone's music is playable at once;
+done and verified on the device: queue, now playing page, mini player
+with 10-second skips, MPRIS with seeking, cover actions, resume of the
+exact position after a restart. Open: playback reporting, which needs
+a server.
+
 
 Queue, now playing page, MPRIS, cover actions, seeking, resume after a
 restart, playback reporting while online.
