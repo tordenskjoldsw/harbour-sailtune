@@ -4,6 +4,9 @@ import Sailfish.Silica 1.0
 CoverBackground {
     Label {
         anchors.centerIn: parent
-        text: qsTr("SailTune")
+        width: parent.width - 2 * Theme.paddingLarge
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        text: sources.active ? sources.active.name : qsTr("SailTune")
     }
 }
