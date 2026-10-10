@@ -1,0 +1,34 @@
+# AI agent instruction and planning files (maintainer's working documents)
+CLAUDE.md
+CLAUDE.local.md
+AGENT.md
+AGENTS.md
+GEMINI.md
+COPILOT.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.aider*
+IMPLEMENTATION.md
+
+# sfdk / qmake build output
+RPMS/
+.sfdk/
+/build*/
+documentation.list
+*.o
+*.so
+Makefile
+.qmake.stash
+*.pro.user*
+moc_*.cpp
+qrc_*.cpp
+*.qm
+harbour-sailtune
+harbour-musicspike
+
+# Editors
+.vscode/
+.idea/
+*.swp
