@@ -12,7 +12,9 @@ code with them; their build, release and Harbour experience carries over
 ## 1. Goal
 
 A native, open-source music player for Sailfish OS, published in the
-Jolla Store, for the music on the user's own server. v1 serves Jellyfin;
+Jolla Store, for the music on the phone and on the user's own server.
+Like S2 on Android, it plays the phone's music from the first start; a
+server is a source the user adds. v1 serves Jellyfin;
 the code keeps the server family behind one line, so that OpenSubsonic
 servers with API keys (such as Navidrome) can follow in a later release
 and users choose the server they run. It streams
@@ -31,7 +33,7 @@ streaming subscription for people who keep their music themselves.
 | # | Criterion | Measured by |
 |---|-----------|-------------|
 | 1 | In Harbour | RPM passes the Harbour validator for aarch64 and armv7hl; Jolla QA accepts it |
-| 2 | Offline first | Downloaded music plays with no network and no login; after the first setup the app opens on the library from its cache, never on a login page, also offline |
+| 2 | Offline first | The phone's music and downloaded music play with no network and no login; the app opens on its library, never on a login page, also offline and on the first start |
 | 3 | Uninterrupted playback | 60 minutes with the screen off and the phone untouched, from downloads and streamed, without a gap in the playback log; the next track starts by itself |
 | 4 | Credentials | No password is ever stored: Jellyfin keeps its access token, OpenSubsonic its API key, both revocable on the server; logging out ends the session where the server has one; no secret in any log |
 | 5 | No broken downloads | A download is written to a temporary file, checked against the server's size and only then renamed; an interrupted download leaves nothing half-written; the library cache can always be rebuilt from the server |
@@ -92,6 +94,9 @@ src/   C++ (Qt 5.6): one client per server family behind a common
   talks to. The line is drawn as narrow as Jellyfin needs and checked
   against the OpenSubsonic API on paper, so the second family fits
   without reshaping it.
+- **Sources**: the phone's music is always there; servers are added.
+  `LocalSource` reads the phone's music, `JellyfinServer` a Jellyfin
+  server; both stand behind the same line.
 - **One active server**: several servers can be set up; one is active,
   and the library, queue and search belong to it. Switching keeps every
   server's downloads and cache.
@@ -128,13 +133,19 @@ Allowed APIs checked 2026-10-10 against the Harbour list: QtMultimedia
 5.6, libQt5Multimedia, libQt5Network, libQt5Sql, libsqlite3,
 libQt5Concurrent, Amber.Mpris 1.0 (QML), Sailfish.Secrets,
 Nemo.Notifications, Nemo.KeepAlive. Sailjail permissions: Audio and
-Internet; Music only for a later export to the public Music folder.
+Internet; Music, to play the phone's music; MediaIndexing, if the
+spike shows the system's media index is reachable.
 
 ## 6. Login and session
 
-- The server is set up once. Only the very first start asks for it;
-  every later start opens the active server's library from the cache,
-  online or not, with no login page in between (maintainer, 2026-10-10).
+- No start ever asks for a server, the first one included (maintainer,
+  2026-10-10). The app opens on its library: the phone's music, or the
+  active server's library from the cache, online or not. Without a
+  server and without music on the phone it shows a hint to add one.
+- Adding a server is an action in the pulley menu and the settings. The
+  app looks for Jellyfin servers in the home network (Jellyfin answers a
+  UDP broadcast on port 7359, unverified from a Harbour app) and offers
+  them; typing the address stays possible.
 - A token the server no longer accepts shows a "log in again" note on
   the library; it blocks nothing, and the downloads keep playing.
 
@@ -238,9 +249,11 @@ Open: a long run with the screen off (the maintainer will use the spike
 day to day instead of a dedicated hour), streaming over the VPN, AAC and
 Opus files, HTTPS.
 
-### Phase 2 - Server and library
+### Phase 2 - Sources and library
 
-The server line with `JellyfinServer`, adding and switching servers,
+A spike on the phone first: the system's media index over D-Bus with
+the `MediaIndexing` permission, and Jellyfin's server discovery by UDP
+broadcast. Then the source line with `LocalSource` and `JellyfinServer`, adding and switching servers,
 login (password and Quick Connect), the SQLite cache with artists,
 albums, tracks and playlists, the library pages and search, cover art
 cache, limits on every response. Tested against the maintainer's
@@ -302,10 +315,26 @@ editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 14. Open decisions
 
+- **Reading the phone's music.** Harbour allows no tag library (no
+  TagLib, no GStreamer libraries, no Tracker QML module; checked
+  2026-10-10), but it allows the `MediaIndexing` permission and
+  libQt5DBus. Options: the system's media index (Tracker) over D-Bus,
+  as the system's media player uses it, if `MediaIndexing` opens it to a
+  Harbour app; or an own, strictly bounded reader for FLAC, MP3 (ID3),
+  M4A and Ogg/Opus tags. A spike decides.
+
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
 Decided:
+
+- The phone's music (2026-10-10): v1 plays the music on the phone, as
+  S2 on Android does, so the app is useful from the first start without
+  a server; servers are added as sources. Needs the `Music` permission,
+  and how tags are read is open (above). A leaner v1 without it was
+  weighed.
+- Testing (2026-10-10): Phase 2 is tested on the device against the
+  maintainer's own Jellyfin, not against a test server in Docker.
 
 - OpenSubsonic login (2026-10-10): only servers that offer API keys (the
   OpenSubsonic `apiKey` extension). The classic login needs the password
