@@ -2,8 +2,8 @@
 
 Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour),
 playback spike on the Jolla Phone mostly done (section 11, Phase 1), v1
-serves Jellyfin and OpenSubsonic (section 14), Phase 0 done. Next:
-Phase 2, starting with a short OpenSubsonic spike.
+serves Jellyfin, OpenSubsonic follows (section 14), Phase 0 done. Next:
+Phase 2.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -12,9 +12,10 @@ code with them; their build, release and Harbour experience carries over
 ## 1. Goal
 
 A native, open-source music player for Sailfish OS, published in the
-Jolla Store, for the music on the user's own server: Jellyfin, or any
-server that speaks OpenSubsonic with API keys (such as Navidrome; which
-others offer API keys is checked in Phase 2). It streams
+Jolla Store, for the music on the user's own server. v1 serves Jellyfin;
+the code keeps the server family behind one line, so that OpenSubsonic
+servers with API keys (such as Navidrome) can follow in a later release
+and users choose the server they run. It streams
 while the server is reachable (at home or over a VPN) and plays albums
 and playlists downloaded to the phone without any network. It replaces a
 streaming subscription for people who keep their music themselves.
@@ -22,7 +23,7 @@ streaming subscription for people who keep their music themselves.
 - Package name: `harbour-sailtune` (draft in Harbour since 2026-10-10)
 - Primary target: Jolla Phone (2026), aarch64, Sailfish OS 5.2
 - Secondary target: armv7hl (Harbour requires it), then i486 (emulator)
-- Servers in v1: Jellyfin and OpenSubsonic; several can be set up, one
+- Servers: Jellyfin in v1, OpenSubsonic next; several can be set up, one
   is active at a time (decided 2026-10-10)
 
 ## 2. Success criteria
@@ -51,8 +52,8 @@ Music clients for self-hosted servers on Sailfish (desk research
 
 SailTune competes on:
 
-- **Two server families in one app**: Jellyfin and every OpenSubsonic
-  server, several set up, one active at a time
+- **Built for more than one server family**: Jellyfin in v1, OpenSubsonic
+  next, several servers set up, one active at a time
 - **Music only**: artists, albums, playlists and the queue, nothing else
 - **Offline first**: download albums and playlists, play them anywhere,
   start without a network
@@ -63,8 +64,8 @@ SailTune competes on:
 ## 4. Non-goals
 
 - Video, photos, TV, books and podcasts on the Jellyfin server
-- Emby and Plex in v1; further server families may follow one at a time
-  (Emby first, being close to Jellyfin)
+- Any server family but Jellyfin in v1; OpenSubsonic follows first, Emby
+  and Plex may follow one at a time
 - A library that mixes several servers at once
 - Playback or downloads while the app is closed: Harbour allows no
   background service. Downloads run while the app runs, also in the
@@ -86,9 +87,11 @@ src/   C++ (Qt 5.6): one client per server family behind a common
 
 - **Server families behind one line**: the library, downloads, player and
   UI talk to "the active server": browse, search, stream URL, download
-  request, report a play, favorites. `JellyfinServer` and
-  `SubsonicServer` implement it; nothing above that line knows which one
-  it talks to. The line is drawn as narrow as these two need, not wider.
+  request, report a play, favorites. `JellyfinServer` implements it in
+  v1, `SubsonicServer` after; nothing above that line knows which one it
+  talks to. The line is drawn as narrow as Jellyfin needs and checked
+  against the OpenSubsonic API on paper, so the second family fits
+  without reshaping it.
 - **One active server**: several servers can be set up; one is active,
   and the library, queue and search belong to it. Switching keeps every
   server's downloads and cache.
@@ -229,16 +232,13 @@ Open: a long run with the screen off (the maintainer will use the spike
 day to day instead of a dedicated hour), streaming over the VPN, AAC and
 Opus files, HTTPS.
 
-### Phase 2 - Servers and library
+### Phase 2 - Server and library
 
-The server line with `JellyfinServer` and `SubsonicServer`, adding and
-switching servers, login (Jellyfin password and Quick Connect,
-OpenSubsonic API key), the SQLite cache with artists,
+The server line with `JellyfinServer`, adding and switching servers,
+login (password and Quick Connect), the SQLite cache with artists,
 albums, tracks and playlists, the library pages and search, cover art
-cache, limits on every response. A Navidrome in Docker on the
-development PC, with made-up or free music, serves as the OpenSubsonic
-test server; the maintainer's Jellyfin as the Jellyfin one. A short
-OpenSubsonic spike on the phone (stream, download, seek) comes first.
+cache, limits on every response. Tested against the maintainer's
+Jellyfin.
 
 ### Phase 3 - Player
 
@@ -263,7 +263,9 @@ tag, submission into the existing draft.
 
 ### Phase 7 - After the first release
 
-As decided then: gapless playback, a quality choice for downloads,
+First OpenSubsonic (`SubsonicServer`, API keys only; a spike against a
+Navidrome in Docker on the development PC checks which servers qualify).
+Then as decided: gapless playback, a quality choice for downloads,
 editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 12. Security principles
@@ -342,13 +344,12 @@ Decided:
 - Name (2026-10-10): SailTune, `harbour-sailtune`, held as a draft in the
   maintainer's Harbour account with a name-check build; it must not be
   submitted for QA. Shanty and Capstan were the other candidates.
-- Servers (2026-10-10): v1 supports Jellyfin and OpenSubsonic, behind
-  one line in the code. Jellyfin was first planned alone (the maintainer
-  moved from Emby); the maintainer added OpenSubsonic for v1 because one
-  implementation reaches Navidrome, Gonic, Airsonic, Ampache and
-  Nextcloud Music, which gives the app a better chance. Several servers
-  can be set up, one is active at a time; a mixed library was weighed
-  and left out. Emby may follow.
+- Servers (2026-10-10): v1 supports Jellyfin alone, to ship sooner, with
+  the server family behind one line in the code; OpenSubsonic follows
+  first after v1, so users can then choose their server. OpenSubsonic was
+  briefly planned for v1 the same day, since one implementation reaches
+  Navidrome and others. Several servers can be set up, one is active at
+  a time; a mixed library was weighed and left out. Emby may follow.
 - Store first (2026-10-10, as for all the maintainer's apps): the Jolla
   Store is the main channel; OpenRepos at most later.
 - License: MIT.
