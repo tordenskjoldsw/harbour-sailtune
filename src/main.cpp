@@ -3,8 +3,13 @@
 #include <QQuickView>
 #include <QScopedPointer>
 #include <QString>
+#include <qqml.h>
 
 #include <sailfishapp.h>
+
+#include "library/librarymodel.h"
+#include "sources/source.h"
+#include "sources/sources.h"
 
 int main(int argc, char *argv[])
 {
@@ -15,9 +20,18 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("sailtune"));
     QCoreApplication::setApplicationVersion(QStringLiteral(APP_VERSION));
 
+    qmlRegisterType<LibraryModel>("harbour.sailtune", 1, 0, "LibraryModel");
+    qmlRegisterUncreatableType<Source>("harbour.sailtune", 1, 0, "Source",
+                                       QStringLiteral("Sources come from the app"));
+    qmlRegisterUncreatableType<Sources>("harbour.sailtune", 1, 0, "Sources",
+                                        QStringLiteral("One list of sources for the app"));
+
+    Sources sources;
+
     QScopedPointer<QQuickView> view(SailfishApp::createView());
     view->rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                             QStringLiteral(APP_VERSION));
+    view->rootContext()->setContextProperty(QStringLiteral("sources"), &sources);
     view->setSource(SailfishApp::pathToMainQml());
     view->show();
     return app->exec();
