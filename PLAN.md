@@ -133,8 +133,8 @@ Allowed APIs checked 2026-10-10 against the Harbour list: QtMultimedia
 5.6, libQt5Multimedia, libQt5Network, libQt5Sql, libsqlite3,
 libQt5Concurrent, Amber.Mpris 1.0 (QML), Sailfish.Secrets,
 Nemo.Notifications, Nemo.KeepAlive. Sailjail permissions: Audio and
-Internet; Music, to play the phone's music; MediaIndexing, if the
-spike shows the system's media index is reachable.
+Internet; Music, to play the phone's music and read its album art;
+MediaIndexing, to read the phone's music from the system's media index.
 
 ## 6. Login and session
 
@@ -142,10 +142,9 @@ spike shows the system's media index is reachable.
   2026-10-10). The app opens on its library: the phone's music, or the
   active server's library from the cache, online or not. Without a
   server and without music on the phone it shows a hint to add one.
-- Adding a server is an action in the pulley menu and the settings. The
-  app looks for Jellyfin servers in the home network (Jellyfin answers a
-  UDP broadcast on port 7359, unverified from a Harbour app) and offers
-  them; typing the address stays possible.
+- Adding a server is an action in the pulley menu and the settings: the
+  user types the server's address, which people who run a server know.
+  No discovery in v1 (section 14).
 - A token the server no longer accepts shows a "log in again" note on
   the library; it blocks nothing, and the downloads keep playing.
 
@@ -251,9 +250,8 @@ Opus files, HTTPS.
 
 ### Phase 2 - Sources and library
 
-A spike on the phone first: the system's media index over D-Bus with
-the `MediaIndexing` permission, and Jellyfin's server discovery by UDP
-broadcast. Then the source line with `LocalSource` and `JellyfinServer`, adding and switching servers,
+The source spike (`spikes/sources/`, done) showed the system's media
+index works. Then the source line with `LocalSource` and `JellyfinServer`, adding and switching servers,
 login (password and Quick Connect), the SQLite cache with artists,
 albums, tracks and playlists, the library pages and search, cover art
 cache, limits on every response. Tested against the maintainer's
@@ -315,17 +313,21 @@ editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 14. Open decisions
 
-- **Reading the phone's music.** The source spike (`spikes/sources/`)
-  read 27 songs with title, artist, album, track number and duration from
-  the system's media index in 81 ms: TinySPARQL's `Serialize` as JSON-LD
-  over D-Bus, permission `MediaIndexing`, and the system's album art in
-  `~/.cache/media-art`. Proposal: use the media index; no own tag
-  reader.
 
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
 Decided:
+
+- Reading the phone's music (2026-10-10): from the system's media index,
+  no own tag reader. The source spike read 27 songs with title, artist,
+  album, track number and duration in 81 ms through TinySPARQL's
+  `Serialize` (JSON-LD over D-Bus, permission `MediaIndexing`), and the
+  system's album art in `~/.cache/media-art` (permission `Music`).
+- No server discovery in v1 (2026-10-10): the user types the address.
+  Jellyfin's UDP discovery got no answer from the maintainer's server, a
+  container app on TrueNAS that publishes no UDP port 7359 and would name
+  its container address; people who run a server know its address.
 
 - The phone's music (2026-10-10): v1 plays the music on the phone, as
   S2 on Android does, so the app is useful from the first start without
