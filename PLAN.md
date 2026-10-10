@@ -1,9 +1,9 @@
 # SailTune - Project Plan
 
 Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour),
-playback spike on the Jolla Phone mostly done (section 11, Phase 1), the
-decisions of section 14 made except gapless playback. Next: Phase 0,
-then Phase 2.
+playback spike on the Jolla Phone mostly done (section 11, Phase 1), v1
+serves Jellyfin and OpenSubsonic (section 14), Phase 0 done. Next:
+Phase 2, starting with a short OpenSubsonic spike.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -12,7 +12,9 @@ code with them; their build, release and Harbour experience carries over
 ## 1. Goal
 
 A native, open-source music player for Sailfish OS, published in the
-Jolla Store, for the music on the user's own Jellyfin server. It streams
+Jolla Store, for the music on the user's own server: Jellyfin, or any
+server that speaks OpenSubsonic (Navidrome, Gonic, Airsonic, Ampache,
+Nextcloud Music and others). It streams
 while the server is reachable (at home or over a VPN) and plays albums
 and playlists downloaded to the phone without any network. It replaces a
 streaming subscription for people who keep their music themselves.
@@ -20,7 +22,8 @@ streaming subscription for people who keep their music themselves.
 - Package name: `harbour-sailtune` (draft in Harbour since 2026-10-10)
 - Primary target: Jolla Phone (2026), aarch64, Sailfish OS 5.2
 - Secondary target: armv7hl (Harbour requires it), then i486 (emulator)
-- Server: Jellyfin only (decided 2026-10-10; Emby is not targeted)
+- Servers in v1: Jellyfin and OpenSubsonic; several can be set up, one
+  is active at a time (decided 2026-10-10)
 
 ## 2. Success criteria
 
@@ -29,7 +32,7 @@ streaming subscription for people who keep their music themselves.
 | 1 | In Harbour | RPM passes the Harbour validator for aarch64 and armv7hl; Jolla QA accepts it |
 | 2 | Offline first | Downloaded music plays with no network and no login; the app opens on the library from its cache, also offline |
 | 3 | Uninterrupted playback | 60 minutes with the screen off and the phone untouched, from downloads and streamed, without a gap in the playback log; the next track starts by itself |
-| 4 | Credentials | The password is never stored; the access token as decided in section 14; logging out ends the session on the server; no secret in any log |
+| 4 | Credentials | A Jellyfin password is never stored, only its access token; for OpenSubsonic an API key where the server offers one, otherwise as section 14 decides; logging out ends the session where the server has one; no secret in any log |
 | 5 | No broken downloads | A download is written to a temporary file, checked against the server's size and only then renamed; an interrupted download leaves nothing half-written; the library cache can always be rebuilt from the server |
 | 6 | Bounded input | Every server response has size and count limits; file names come from item ids, never from server text |
 | 7 | Fast daily use | Library visible < 1 s after start from the cache; a downloaded track starts < 0.5 s after the tap |
@@ -43,11 +46,13 @@ Music clients for self-hosted servers on Sailfish (desk research
 | App | State | Gap |
 |-----|-------|-----|
 | Sailfin (OpenRepos) | Jellyfin client for all media, alpha, 0.6.0 (2026-09) | Not in the Jolla Store; offline not mentioned; video-first |
-| SubMusic (OpenRepos) | MIT, active, Navidrome/Subsonic, Nextcloud, Bandcamp; MPRIS; single-track downloads | No Jellyfin; Store release planned, not confirmed |
+| SubMusic (OpenRepos) | MIT, active, Navidrome/Subsonic, Nextcloud, Bandcamp; MPRIS; single-track downloads | No Jellyfin; whole albums offline not yet; Store release planned, not confirmed |
 | SailStream (Jolla Store) | Plex | Not Jellyfin |
 
 SailTune competes on:
 
+- **Two server families in one app**: Jellyfin and every OpenSubsonic
+  server, several set up, one active at a time
 - **Music only**: artists, albums, playlists and the queue, nothing else
 - **Offline first**: download albums and playlists, play them anywhere,
   start without a network
@@ -58,7 +63,9 @@ SailTune competes on:
 ## 4. Non-goals
 
 - Video, photos, TV, books and podcasts on the Jellyfin server
-- Other servers (Emby, Plex, Navidrome/Subsonic) in v1
+- Emby and Plex in v1; further server families may follow one at a time
+  (Emby first, being close to Jellyfin)
+- A library that mixes several servers at once
 - Playback or downloads while the app is closed: Harbour allows no
   background service. Downloads run while the app runs, also in the
   background; music plays while the app is open, also with the screen off
@@ -70,34 +77,49 @@ SailTune competes on:
 ## 5. Architecture
 
 ```
-qml/   Silica UI: library, album, artist, playlists, queue, now playing,
-       downloads, settings
-src/   C++ (Qt 5.6): Jellyfin client (QtNetwork), library cache (SQLite),
-       download manager, player (QtMultimedia), MPRIS bridge data
+qml/   Silica UI: servers, library, album, artist, playlists, queue,
+       now playing, downloads, settings
+src/   C++ (Qt 5.6): one client per server family behind a common
+       interface (QtNetwork), library cache (SQLite), download manager,
+       player (QtMultimedia), MPRIS bridge data
 ```
+
+- **Server families behind one line**: the library, downloads, player and
+  UI talk to "the active server": browse, search, stream URL, download
+  request, report a play, favorites. `JellyfinServer` and
+  `SubsonicServer` implement it; nothing above that line knows which one
+  it talks to. The line is drawn as narrow as these two need, not wider.
+- **One active server**: several servers can be set up; one is active,
+  and the library, queue and search belong to it. Switching keeps every
+  server's downloads and cache.
+- **Neutral identities**: every cached item and download carries the
+  server's local id and the item id as text, since Jellyfin and Subsonic
+  ids look different; downloads live in `downloads/<server id>/`.
 
 Qt only, no Rust core (section 14). Data that crosses from the server
 is parsed in one place in the Jellyfin client, with hard limits.
 
-- **Network**: QNetworkAccessManager for every call and every download,
-  with the token in the `Authorization: MediaBrowser ... Token=...`
-  header. QtMultimedia sends no custom headers, so streaming passes the
-  token as `api_key` in the URL (verified in the spike); such URLs never
-  reach a log.
+- **Network**: QNetworkAccessManager for every call and every download.
+  Jellyfin takes the token in the `Authorization: MediaBrowser ...
+  Token=...` header; Subsonic takes its credentials as URL parameters on
+  every call. QtMultimedia sends no custom headers, so a stream URL
+  carries the credentials in both cases (`api_key` for Jellyfin, verified
+  in the spike); such URLs never reach a log.
 - **Library cache**: SQLite in the app's private storage, filled from
-  `/Items` (artists, albums, tracks, playlists) and refreshed on start
-  and on demand while online; the UI reads only the cache.
-- **Downloads**: original files (`/Audio/{id}/stream?static=true`; a
-  quality choice follows in Phase 7) in `downloads/` in the app's private
-  storage, named `<item id>.<extension>`; the cache records which tracks
-  are offline.
+  Jellyfin's `/Items` or Subsonic's `getArtists`, `getAlbum` and
+  `getPlaylists`, refreshed on start and on demand while online; the UI
+  reads only the cache.
+- **Downloads**: original files (Jellyfin `/Audio/{id}/stream?static=true`,
+  Subsonic `download`; a quality choice follows in Phase 7) in
+  `downloads/<server id>/` in the app's private storage, named
+  `<item id>.<extension>`; the cache records which tracks are offline.
 - **Playback**: one QtMultimedia `Audio` with the music role and a queue
   in C++; a track starts once the player has stopped after the previous
   one (spike, section 11). Amber.Mpris for the lock screen; the cover
   shows the track and has play/pause and next.
-- **Reporting**: playback start, progress and stop to `/Sessions/Playing`
-  while online; offline plays are queued and sent when the server is
-  reachable again (section 14).
+- **Reporting**: Jellyfin's `/Sessions/Playing` (start, progress, stop),
+  Subsonic's `scrobble`; offline plays are queued and sent when the
+  server is reachable again (section 14).
 
 Allowed APIs checked 2026-10-10 against the Harbour list: QtMultimedia
 5.6, libQt5Multimedia, libQt5Network, libQt5Sql, libsqlite3,
@@ -107,12 +129,18 @@ Internet; Music only for a later export to the public Music folder.
 
 ## 6. Login and session
 
-- Server address and user name are kept; the password only reaches
-  `/Users/AuthenticateByName` and is never stored.
+- Adding a server: its address; the app asks the server what it is
+  (Jellyfin's `/System/Info/Public`, Subsonic's `ping`) instead of
+  asking the user.
+- Jellyfin: server address and user name are kept; the password only
+  reaches `/Users/AuthenticateByName` and is never stored.
+- OpenSubsonic: an API key (the `apiKey` extension) where the server
+  offers one; for servers with only the classic login, what is stored is
+  open (section 14).
 - Jellyfin's Quick Connect (a code shown in the app, approved in another
   Jellyfin client) as a second way to log in, so the password need not
   be typed on the phone (Phase 2, unverified on Jellyfin 12.2).
-- One server and one user in v1.
+- Several servers, one active; one user per server.
 - Logging out calls `/Sessions/Logout`, deletes the token, and asks
   whether to keep the downloads.
 - HTTPS is recommended; plain HTTP is allowed for a server reached only
@@ -166,14 +194,15 @@ Internet; Music only for a later export to the public Music folder.
 - No daemons, no background service, no autostart.
 - Installed files under `/usr/share/harbour-sailtune` except binary,
   desktop file and icons.
-- No product names in the app name, icon or desktop file: no "Jellyfin"
-  there; the store text may name the server.
+- No product names in the app name, icon or desktop file: no
+  "Jellyfin", "Subsonic" or "Navidrome" there; the store text may name
+  the servers.
 - Versions only digits and dots for a submission (`-c no-fix-version` or
   a clean tag).
 
 ## 11. Phases
 
-### Phase 0 - Scaffold
+### Phase 0 - Scaffold (done 2026-10-10)
 
 Repository, `.gitignore` with the agent files, MIT license, README with
 the AI disclosure, `harbour-sailtune.pro`, spec, desktop file with Audio
@@ -200,11 +229,16 @@ Open: a long run with the screen off (the maintainer will use the spike
 day to day instead of a dedicated hour), streaming over the VPN, AAC and
 Opus files, HTTPS.
 
-### Phase 2 - Login and library
+### Phase 2 - Servers and library
 
-Login (password and Quick Connect), session handling, the SQLite cache
-with artists, albums, tracks and playlists, the library pages and
-search, cover art cache, limits on every response.
+The server line with `JellyfinServer` and `SubsonicServer`, adding and
+switching servers, login (Jellyfin password and Quick Connect,
+OpenSubsonic API key or classic login), the SQLite cache with artists,
+albums, tracks and playlists, the library pages and search, cover art
+cache, limits on every response. A Navidrome in Docker on the
+development PC, with made-up or free music, serves as the OpenSubsonic
+test server; the maintainer's Jellyfin as the Jellyfin one. A short
+OpenSubsonic spike on the phone (stream, download, seek) comes first.
 
 ### Phase 3 - Player
 
@@ -230,8 +264,7 @@ tag, submission into the existing draft.
 ### Phase 7 - After the first release
 
 As decided then: gapless playback, a quality choice for downloads,
-editing playlists, several servers or users, lyrics, sleep timer, German
-translation.
+editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 12. Security principles
 
@@ -261,6 +294,13 @@ translation.
 
 ## 14. Open decisions
 
+- **Classic Subsonic login.** A server without the `apiKey` extension
+  needs, on every call, either the password or a salted MD5 token made
+  from it; keeping that token works like keeping the password. Options:
+  store the password in the owner-only file like the Jellyfin token,
+  with a warning in the login page; or support only servers with an API
+  key. To be decided with the Subsonic spike, once it is known which
+  servers offer API keys.
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
@@ -301,7 +341,13 @@ Decided:
 - Name (2026-10-10): SailTune, `harbour-sailtune`, held as a draft in the
   maintainer's Harbour account with a name-check build; it must not be
   submitted for QA. Shanty and Capstan were the other candidates.
-- Server (2026-10-10): Jellyfin only; the maintainer moved from Emby.
+- Servers (2026-10-10): v1 supports Jellyfin and OpenSubsonic, behind
+  one line in the code. Jellyfin was first planned alone (the maintainer
+  moved from Emby); the maintainer added OpenSubsonic for v1 because one
+  implementation reaches Navidrome, Gonic, Airsonic, Ampache and
+  Nextcloud Music, which gives the app a better chance. Several servers
+  can be set up, one is active at a time; a mixed library was weighed
+  and left out. Emby may follow.
 - Store first (2026-10-10, as for all the maintainer's apps): the Jolla
   Store is the main channel; OpenRepos at most later.
 - License: MIT.
