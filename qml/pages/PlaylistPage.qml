@@ -14,6 +14,8 @@ Page {
         header: PageHeader { title: playlistName }
 
         model: LibraryModel {
+            id: tracks
+
             source: sources.active
             view: LibraryModel.PlaylistTracks
             filter: playlistId
@@ -23,6 +25,7 @@ Page {
             image: model.image
             title: model.title
             description: model.artist
+            onClicked: player.playTracks(tracks.rows(), index)
         }
 
         VerticalScrollDecorator {}

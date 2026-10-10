@@ -92,6 +92,7 @@ Page {
                     image: model.image
                     title: model.title
                     description: model.artist + " - " + model.album
+                    onClicked: player.playTracks(tracks.rows(), index)
                 }
             }
         }

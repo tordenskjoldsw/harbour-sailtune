@@ -41,6 +41,8 @@ Page {
         }
 
         model: LibraryModel {
+            id: tracks
+
             source: sources.active
             view: LibraryModel.AlbumTracks
             filter: albumId
@@ -64,6 +66,8 @@ Page {
 
         delegate: TwoLineItem {
             showImage: false
+            highlighted: down || player.trackId === model.id
+            onClicked: player.playTracks(tracks.rows(), index)
             title: (model.number > 0 ? model.number + ". " : "") + model.title
             description: (model.artist !== albumArtist ? model.artist + ", " : "")
                          + (model.seconds > 0 ? duration(model.seconds) : "")
