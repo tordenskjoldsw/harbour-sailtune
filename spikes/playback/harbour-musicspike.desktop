@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=harbour-musicspike
+Exec=harbour-musicspike
+Name=Music spike
+
+[X-Sailjail]
+OrganizationName=de.tordenskjold
+ApplicationName=musicspike
+Permissions=Audio;Internet
