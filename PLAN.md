@@ -315,13 +315,12 @@ editing playlists, Emby, lyrics, sleep timer, German translation.
 
 ## 14. Open decisions
 
-- **Reading the phone's music.** Harbour allows no tag library (no
-  TagLib, no GStreamer libraries, no Tracker QML module; checked
-  2026-10-10), but it allows the `MediaIndexing` permission and
-  libQt5DBus. Options: the system's media index (Tracker) over D-Bus,
-  as the system's media player uses it, if `MediaIndexing` opens it to a
-  Harbour app; or an own, strictly bounded reader for FLAC, MP3 (ID3),
-  M4A and Ogg/Opus tags. A spike decides.
+- **Reading the phone's music.** The source spike (`spikes/sources/`)
+  read 27 songs with title, artist, album, track number and duration from
+  the system's media index in 81 ms: TinySPARQL's `Serialize` as JSON-LD
+  over D-Bus, permission `MediaIndexing`, and the system's album art in
+  `~/.cache/media-art`. Proposal: use the media index; no own tag
+  reader.
 
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
