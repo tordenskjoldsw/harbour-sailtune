@@ -1,9 +1,9 @@
 # SailTune - Project Plan
 
 Status: 2026-10-10 - name decided (SailTune, held as a draft in Harbour),
-playback spike on the Jolla Phone mostly done (section 11, Phase 1), most
-decisions made (section 14). Next: where downloads go and the storage
-limit, then Phase 0 and Phase 2.
+playback spike on the Jolla Phone mostly done (section 11, Phase 1), the
+decisions of section 14 made except gapless playback. Next: Phase 0,
+then Phase 2.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -88,9 +88,9 @@ is parsed in one place in the Jellyfin client, with hard limits.
   `/Items` (artists, albums, tracks, playlists) and refreshed on start
   and on demand while online; the UI reads only the cache.
 - **Downloads**: original files (`/Audio/{id}/stream?static=true`; a
-  quality choice follows in Phase 7), stored where section 14 decides,
-  named `<item id>.<extension>`; the cache records which tracks are
-  offline.
+  quality choice follows in Phase 7) in `downloads/` in the app's private
+  storage, named `<item id>.<extension>`; the cache records which tracks
+  are offline.
 - **Playback**: one QtMultimedia `Audio` with the music role and a queue
   in C++; a track starts once the player has stopped after the previous
   one (spike, section 11). Amber.Mpris for the lock screen; the cover
@@ -103,8 +103,7 @@ Allowed APIs checked 2026-10-10 against the Harbour list: QtMultimedia
 5.6, libQt5Multimedia, libQt5Network, libQt5Sql, libsqlite3,
 libQt5Concurrent, Amber.Mpris 1.0 (QML), Sailfish.Secrets,
 Nemo.Notifications, Nemo.KeepAlive. Sailjail permissions: Audio and
-Internet; Music only if downloads go to the public Music folder
-(section 14).
+Internet; Music only for a later export to the public Music folder.
 
 ## 6. Login and session
 
@@ -131,8 +130,9 @@ Internet; Music only if downloads go to the public Music folder
 - The download manager runs one download at a time, survives leaving the
   page, and resumes or restarts after the app was closed (Range
   requests; Jellyfin answered range requests for seeking in the spike).
-- Settings show the space used and the free space; a limit is open
-  (section 14).
+- Downloads stop before the phone's free space falls below a reserve;
+  settings show the space used, the largest albums and "remove all
+  downloads" (section 14).
 - Without a network the app switches to the downloads by itself and says
   so; streaming needs no extra mode.
 - Removing an album from the phone deletes its files and its offline
@@ -261,11 +261,6 @@ translation.
 
 ## 14. Open decisions
 
-- **Where downloads go.** Options: the app's private storage (no extra
-  permission, invisible to other apps), or the public Music folder
-  (permission Music; the system's media player would list them, and
-  other apps could read them). Proposal: private storage.
-- **Storage limit.** None, a warning, or a hard limit in the settings.
 - **Gapless playback.** Whether the short gaps between tracks of a live
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
@@ -290,6 +285,16 @@ Decided:
 - Playback reporting (2026-10-10): plays go to the server (play counts,
   "recently played", resume); offline plays are queued and sent when the
   server is reachable again.
+- Download location (2026-10-10): the app's private storage, named by
+  item id. No extra permission, no files changed behind the app's back,
+  no doubles in the system's media player. The public Music folder was
+  weighed (other apps and the PC over USB could use the files) and left
+  for a later "export to the Music folder".
+- Storage (2026-10-10): no fixed limit by default, as in the common
+  streaming apps; the user chooses what goes offline. Downloads stop
+  with a clear message before the phone's free space falls below a
+  reserve (2 GB as a start). Settings show the space SailTune uses, the
+  largest albums and "remove all downloads". A user-set limit can follow.
 - Playlists (2026-10-10): play and download in v1; creating and editing
   them on the phone is noted for later (Phase 7).
 
