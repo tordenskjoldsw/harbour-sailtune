@@ -18,11 +18,12 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
   two).
 - Downloads (2026-10-11): an album downloaded and played with WLAN off
   (Phase 4 core).
+- Offline start (2026-10-11): with the server as the active source and
+  WLAN off, the app opens on the server's library from the cache.
 
 Next (Phase 4 rest): a "downloaded only" view for travelling without a
 network, keeping the download queue when the app closes, the storage
-overview in the settings. Untested so far: Quick Connect, and opening
-the server's library without a network.
+overview in the settings. Untested so far: Quick Connect.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
