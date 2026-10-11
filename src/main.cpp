@@ -7,6 +7,7 @@
 
 #include <sailfishapp.h>
 
+#include "downloads/downloads.h"
 #include "library/librarymodel.h"
 #include "player/player.h"
 #include "sources/jellyfinsource.h"
@@ -34,12 +35,14 @@ int main(int argc, char *argv[])
 
     Sources sources;
     Player player(&sources);
+    Downloads downloads(&sources);
 
     QScopedPointer<QQuickView> view(SailfishApp::createView());
     view->rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                             QStringLiteral(APP_VERSION));
     view->rootContext()->setContextProperty(QStringLiteral("sources"), &sources);
     view->rootContext()->setContextProperty(QStringLiteral("player"), &player);
+    view->rootContext()->setContextProperty(QStringLiteral("downloads"), &downloads);
     view->setSource(SailfishApp::pathToMainQml());
     view->show();
     return app->exec();

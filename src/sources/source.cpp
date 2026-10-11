@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 
 Source::Source(const QString &id, const QString &directory, QObject *parent)
     : QObject(parent)
@@ -48,6 +49,29 @@ int Source::trackCount() const
 int Source::playlistCount() const
 {
     return m_library->playlistCount();
+}
+
+QUrl Source::playableUrl(const QVariantMap &track) const
+{
+    const QString file = m_library->downloadedFile(track.value(QStringLiteral("id")).toString());
+    if (!file.isEmpty() && QFileInfo(file).isFile())
+        return QUrl::fromLocalFile(file);
+    return trackUrl(track);
+}
+
+bool Source::canDownload() const
+{
+    return false;
+}
+
+QNetworkRequest Source::downloadRequest(const QVariantMap &) const
+{
+    return QNetworkRequest();
+}
+
+QString Source::downloadDirectory() const
+{
+    return m_directory + QStringLiteral("/downloads");
 }
 
 LibraryDatabase *Source::library() const

@@ -1,6 +1,7 @@
 #ifndef SOURCE_H
 #define SOURCE_H
 
+#include <QNetworkRequest>
 #include <QObject>
 #include <QScopedPointer>
 #include <QString>
@@ -24,6 +25,7 @@ class Source : public QObject
     Q_PROPERTY(int albumCount READ albumCount NOTIFY libraryChanged)
     Q_PROPERTY(int trackCount READ trackCount NOTIFY libraryChanged)
     Q_PROPERTY(int playlistCount READ playlistCount NOTIFY libraryChanged)
+    Q_PROPERTY(bool canDownload READ canDownload CONSTANT)
 
 public:
     // directory: the source's own folder in the app's private storage.
@@ -47,8 +49,16 @@ public:
     // Reads the library from the phone's index or the server into the
     // cache; reports through refreshing, problem and libraryChanged.
     Q_INVOKABLE virtual void refresh() = 0;
-    // What QtMultimedia plays for a track of the cache.
+    // What QtMultimedia plays for a track of the cache: its downloaded
+    // file when there is one, else trackUrl.
+    QUrl playableUrl(const QVariantMap &track) const;
     virtual QUrl trackUrl(const QVariantMap &track) const = 0;
+
+    // Servers can download tracks into downloadDirectory; the phone's own
+    // music needs no download.
+    virtual bool canDownload() const;
+    virtual QNetworkRequest downloadRequest(const QVariantMap &track) const;
+    QString downloadDirectory() const;
     // An image for QML, empty when there is none; size in pixels.
     virtual QUrl imageUrl(const QString &image, int size) const = 0;
 

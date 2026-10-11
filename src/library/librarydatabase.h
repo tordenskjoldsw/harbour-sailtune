@@ -83,6 +83,13 @@ public:
     // left out.
     QVariantList tracksByIds(const QStringList &ids) const;
 
+    // Downloads outlive a refresh: their table is never replaced.
+    bool markDownloaded(const QString &trackId, const QString &file, qint64 bytes);
+    bool forgetDownload(const QString &trackId);
+    // The downloaded file of a track, or empty.
+    QString downloadedFile(const QString &trackId) const;
+    qint64 downloadedBytes() const;
+
 private:
     int count(const char *table) const;
     QVariantList select(const QString &sql, const QVariantList &values) const;

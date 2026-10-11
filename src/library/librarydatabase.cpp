@@ -49,14 +49,18 @@ const char *const Schema[] = {
     "CREATE TABLE IF NOT EXISTS playlist_tracks (playlist_id TEXT NOT NULL,"
     " position INTEGER NOT NULL, track_id TEXT NOT NULL,"
     " PRIMARY KEY (playlist_id, position))",
+    "CREATE TABLE IF NOT EXISTS downloads (track_id TEXT PRIMARY KEY, file TEXT NOT NULL,"
+    " bytes INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS albums_by_artist ON albums (artist_id)",
     "CREATE INDEX IF NOT EXISTS tracks_by_album ON tracks (album_id)",
 };
 
+// Every track query joins the album as "a" and the downloads as "d".
 const char TrackColumns[] =
     "t.id AS id, t.title AS title, t.album_id AS albumId, t.album AS album,"
     " t.artist AS artist, t.disc AS disc, t.number AS number, t.seconds AS seconds,"
-    " t.location AS location, COALESCE(a.image, '') AS image";
+    " t.location AS location, COALESCE(a.image, '') AS image,"
+    " d.track_id IS NOT NULL AS downloaded";
 
 } // namespace
 
@@ -236,6 +240,7 @@ QVariantList LibraryDatabase::tracksOfAlbum(const QString &albumId) const
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
+                                       " LEFT JOIN downloads d ON d.track_id = t.id"
                                        " WHERE t.album_id = ? ORDER BY t.disc, t.number, t.title"),
                   {albumId});
 }
@@ -253,6 +258,7 @@ QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId) const
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM playlist_tracks pt JOIN tracks t ON t.id = pt.track_id"
                                        " LEFT JOIN albums a ON a.id = t.album_id"
+                                       " LEFT JOIN downloads d ON d.track_id = t.id"
                                        " WHERE pt.playlist_id = ? ORDER BY pt.position"),
                   {playlistId});
 }
@@ -263,12 +269,50 @@ QVariantList LibraryDatabase::tracksByIds(const QStringList &ids) const
     for (const QString &id : ids) {
         const QVariantList found = select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                                               + QStringLiteral(" FROM tracks t LEFT JOIN albums a"
-                                                               " ON a.id = t.album_id WHERE t.id = ?"),
+                                                               " ON a.id = t.album_id LEFT JOIN downloads d"
+                                                               " ON d.track_id = t.id WHERE t.id = ?"),
                                           {id});
         if (!found.isEmpty())
             tracks.append(found.first());
     }
     return tracks;
+}
+
+bool LibraryDatabase::markDownloaded(const QString &trackId, const QString &file, qint64 bytes)
+{
+    if (!m_open)
+        return false;
+    QSqlQuery query(QSqlDatabase::database(m_connection));
+    if (!query.prepare(QStringLiteral("INSERT OR REPLACE INTO downloads VALUES (?, ?, ?)")))
+        return false;
+    query.addBindValue(notNull(trackId));
+    query.addBindValue(notNull(file));
+    query.addBindValue(bytes);
+    return query.exec();
+}
+
+bool LibraryDatabase::forgetDownload(const QString &trackId)
+{
+    if (!m_open)
+        return false;
+    QSqlQuery query(QSqlDatabase::database(m_connection));
+    if (!query.prepare(QStringLiteral("DELETE FROM downloads WHERE track_id = ?")))
+        return false;
+    query.addBindValue(trackId);
+    return query.exec();
+}
+
+QString LibraryDatabase::downloadedFile(const QString &trackId) const
+{
+    const QVariantList rows = select(QStringLiteral("SELECT file FROM downloads WHERE track_id = ?"),
+                                     {trackId});
+    return rows.isEmpty() ? QString() : rows.first().toMap().value(QStringLiteral("file")).toString();
+}
+
+qint64 LibraryDatabase::downloadedBytes() const
+{
+    const QVariantList rows = select(QStringLiteral("SELECT COALESCE(SUM(bytes), 0) AS bytes FROM downloads"), {});
+    return rows.isEmpty() ? 0 : rows.first().toMap().value(QStringLiteral("bytes")).toLongLong();
 }
 
 QVariantList LibraryDatabase::searchArtists(const QString &term) const
@@ -292,6 +336,7 @@ QVariantList LibraryDatabase::searchTracks(const QString &term) const
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
+                                       " LEFT JOIN downloads d ON d.track_id = t.id"
                                        " WHERE t.title LIKE ? ESCAPE '\\'"
                                        " ORDER BY t.title LIMIT %1")
                             .arg(SearchLimit),

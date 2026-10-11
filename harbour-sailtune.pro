@@ -4,6 +4,7 @@ CONFIG += sailfishapp
 QT += network sql dbus concurrent multimedia
 
 HEADERS += \
+    src/downloads/downloads.h \
     src/library/librarydatabase.h \
     src/library/librarymodel.h \
     src/player/player.h \
@@ -16,6 +17,7 @@ HEADERS += \
 
 SOURCES += \
     src/main.cpp \
+    src/downloads/downloads.cpp \
     src/library/librarydatabase.cpp \
     src/library/librarymodel.cpp \
     src/player/player.cpp \
@@ -37,6 +39,7 @@ QMAKE_LFLAGS += -Wl,-z,relro,-z,now -s
 DISTFILES += \
     qml/harbour-sailtune.qml \
     qml/components/AlbumArt.qml \
+    qml/components/DownloadState.qml \
     qml/components/MiniPlayer.qml \
     qml/components/TwoLineItem.qml \
     qml/cover/CoverPage.qml \

@@ -44,6 +44,8 @@ public:
     void refresh() override;
     QUrl trackUrl(const QVariantMap &track) const override;
     QUrl imageUrl(const QString &image, int size) const override;
+    bool canDownload() const override;
+    QNetworkRequest downloadRequest(const QVariantMap &track) const override;
 
     // Stores a new token after a login and refreshes.
     void renewToken(const QString &token);

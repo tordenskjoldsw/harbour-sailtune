@@ -29,7 +29,7 @@ void LibraryModel::setSource(Source *source)
         disconnect(m_source, nullptr, this, nullptr);
     m_source = source;
     if (m_source)
-        connect(m_source, &Source::libraryChanged, this, &LibraryModel::reload);
+        connect(m_source, &Source::libraryChanged, this, [this] { reload(); });
     emit sourceChanged();
     reload();
 }
@@ -62,9 +62,42 @@ void LibraryModel::setFilter(const QString &filter)
     reload();
 }
 
-void LibraryModel::reload()
+int LibraryModel::revision() const
 {
-    beginResetModel();
+    return m_revision;
+}
+
+void LibraryModel::setRevision(int revision)
+{
+    if (m_revision == revision)
+        return;
+    m_revision = revision;
+    emit revisionChanged();
+    // A finished download changes only the marks; a reset would scroll
+    // the list back to the top after every file.
+    const QVariantList before = m_rows;
+    reload(false);
+    bool sameRows = before.size() == m_rows.size();
+    for (int i = 0; sameRows && i < m_rows.size(); ++i)
+        sameRows = before.at(i).toMap().value(QStringLiteral("id")) == m_rows.at(i).toMap().value(QStringLiteral("id"));
+    if (sameRows && !m_rows.isEmpty())
+        emit dataChanged(index(0), index(m_rows.size() - 1), {DownloadedRole});
+    else
+        reload();
+}
+
+int LibraryModel::downloadedCount() const
+{
+    int count = 0;
+    for (const QVariant &row : m_rows)
+        count += row.toMap().value(QStringLiteral("downloaded")).toBool() ? 1 : 0;
+    return count;
+}
+
+void LibraryModel::reload(bool reset)
+{
+    if (reset)
+        beginResetModel();
     m_rows.clear();
     const LibraryDatabase *library = m_source ? m_source->library() : nullptr;
     const bool searching = m_view == SearchArtists || m_view == SearchAlbums || m_view == SearchTracks;
@@ -99,7 +132,8 @@ void LibraryModel::reload()
             break;
         }
     }
-    endResetModel();
+    if (reset)
+        endResetModel();
     emit countChanged();
 }
 
@@ -136,6 +170,7 @@ QHash<int, QByteArray> LibraryModel::roleNames() const
         {NumberRole, "number"},
         {SecondsRole, "seconds"},
         {ImageRole, "image"},
+        {DownloadedRole, "downloaded"},
     };
 }
 

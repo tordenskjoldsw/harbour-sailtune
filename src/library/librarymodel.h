@@ -18,6 +18,10 @@ class LibraryModel : public QAbstractListModel
     // The artist, album or playlist id, or the search term.
     Q_PROPERTY(QString filter READ filter WRITE setFilter NOTIFY filterChanged)
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
+    // Bound to Downloads.revision, so the downloaded marks stay current.
+    Q_PROPERTY(int revision READ revision WRITE setRevision NOTIFY revisionChanged)
+    // Tracks of this list that are downloaded.
+    Q_PROPERTY(int downloadedCount READ downloadedCount NOTIFY countChanged)
 
 public:
     enum View {
@@ -45,7 +49,8 @@ public:
         DiscRole,
         NumberRole,
         SecondsRole,
-        ImageRole
+        ImageRole,
+        DownloadedRole
     };
 
     explicit LibraryModel(QObject *parent = nullptr);
@@ -56,6 +61,9 @@ public:
     void setView(View view);
     QString filter() const;
     void setFilter(const QString &filter);
+    int revision() const;
+    void setRevision(int revision);
+    int downloadedCount() const;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -68,14 +76,18 @@ signals:
     void sourceChanged();
     void viewChanged();
     void filterChanged();
+    void revisionChanged();
     void countChanged();
 
 private:
-    void reload();
+    // Without reset only the rows' content is replaced, for a caller that
+    // reports the change itself.
+    void reload(bool reset = true);
 
     QPointer<Source> m_source;
     View m_view = Artists;
     QString m_filter;
+    int m_revision = 0;
     QVariantList m_rows;
 };
 

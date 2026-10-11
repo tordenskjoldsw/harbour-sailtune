@@ -163,7 +163,7 @@ void Player::load(int index, bool start)
     m_savedAt = 0;
     m_lastPosition = 0;
     setProblem(QString());
-    m_media.setMedia(m_source->trackUrl(m_queue.at(index).toMap()));
+    m_media.setMedia(m_source->playableUrl(m_queue.at(index).toMap()));
     emit trackChanged();
     if (start)
         m_media.play();

@@ -149,6 +149,22 @@ QUrl JellyfinSource::imageUrl(const QString &image, int size) const
                           {QStringLiteral("quality"), QStringLiteral("90")}});
 }
 
+bool JellyfinSource::canDownload() const
+{
+    return true;
+}
+
+QNetworkRequest JellyfinSource::downloadRequest(const QVariantMap &track) const
+{
+    // The original file, as streaming plays it; the token goes in the
+    // header here, not in the URL.
+    QNetworkRequest request(Jellyfin::url(
+        m_config.address, QStringLiteral("/Audio/%1/stream").arg(track.value(QStringLiteral("id")).toString()),
+        {{QStringLiteral("static"), QStringLiteral("true")}}));
+    request.setRawHeader("Authorization", Jellyfin::authorization(identity()));
+    return request;
+}
+
 void JellyfinSource::fetchAll(const QString &path, const Jellyfin::Query &query, int maxItems,
                               const ItemsHandler &onItems, const DoneHandler &onDone)
 {
