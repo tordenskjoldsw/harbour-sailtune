@@ -25,6 +25,13 @@ QString sortKey(const QString &text)
     return text.trimmed().toCaseFolded();
 }
 
+// A null QString binds as SQL NULL, which the NOT NULL columns refuse; a
+// server leaves out fields such as an album's artist or image.
+QString notNull(const QString &text)
+{
+    return text.isNull() ? QStringLiteral("") : text;
+}
+
 const int SearchLimit = 50;
 
 const char *const Schema[] = {
@@ -99,51 +106,51 @@ bool LibraryDatabase::replace(const LibrarySnapshot &snapshot)
     ok = ok && query.prepare(QStringLiteral("INSERT OR REPLACE INTO artists VALUES (?, ?, ?, ?)"));
     for (int i = 0; ok && i < snapshot.artists.size(); ++i) {
         const LibraryArtist &artist = snapshot.artists.at(i);
-        query.addBindValue(artist.id);
-        query.addBindValue(artist.name);
-        query.addBindValue(sortKey(artist.name));
-        query.addBindValue(artist.image);
+        query.addBindValue(notNull(artist.id));
+        query.addBindValue(notNull(artist.name));
+        query.addBindValue(notNull(sortKey(artist.name)));
+        query.addBindValue(notNull(artist.image));
         ok = query.exec();
     }
     ok = ok && query.prepare(QStringLiteral("INSERT OR REPLACE INTO albums VALUES (?, ?, ?, ?, ?, ?, ?)"));
     for (int i = 0; ok && i < snapshot.albums.size(); ++i) {
         const LibraryAlbum &album = snapshot.albums.at(i);
-        query.addBindValue(album.id);
-        query.addBindValue(album.title);
-        query.addBindValue(sortKey(album.title));
-        query.addBindValue(album.artistId);
-        query.addBindValue(album.artist);
+        query.addBindValue(notNull(album.id));
+        query.addBindValue(notNull(album.title));
+        query.addBindValue(notNull(sortKey(album.title)));
+        query.addBindValue(notNull(album.artistId));
+        query.addBindValue(notNull(album.artist));
         query.addBindValue(album.year);
-        query.addBindValue(album.image);
+        query.addBindValue(notNull(album.image));
         ok = query.exec();
     }
     ok = ok && query.prepare(QStringLiteral("INSERT OR REPLACE INTO tracks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"));
     for (int i = 0; ok && i < snapshot.tracks.size(); ++i) {
         const LibraryTrack &track = snapshot.tracks.at(i);
-        query.addBindValue(track.id);
-        query.addBindValue(track.title);
-        query.addBindValue(track.albumId);
-        query.addBindValue(track.album);
-        query.addBindValue(track.artist);
+        query.addBindValue(notNull(track.id));
+        query.addBindValue(notNull(track.title));
+        query.addBindValue(notNull(track.albumId));
+        query.addBindValue(notNull(track.album));
+        query.addBindValue(notNull(track.artist));
         query.addBindValue(track.disc);
         query.addBindValue(track.number);
         query.addBindValue(track.seconds);
-        query.addBindValue(track.location);
+        query.addBindValue(notNull(track.location));
         ok = query.exec();
     }
     for (int i = 0; ok && i < snapshot.playlists.size(); ++i) {
         const LibraryPlaylist &playlist = snapshot.playlists.at(i);
         ok = query.prepare(QStringLiteral("INSERT OR REPLACE INTO playlists VALUES (?, ?, ?, ?)"));
-        query.addBindValue(playlist.id);
-        query.addBindValue(playlist.name);
-        query.addBindValue(sortKey(playlist.name));
-        query.addBindValue(playlist.image);
+        query.addBindValue(notNull(playlist.id));
+        query.addBindValue(notNull(playlist.name));
+        query.addBindValue(notNull(sortKey(playlist.name)));
+        query.addBindValue(notNull(playlist.image));
         ok = ok && query.exec();
         ok = ok && query.prepare(QStringLiteral("INSERT INTO playlist_tracks VALUES (?, ?, ?)"));
         for (int position = 0; ok && position < playlist.trackIds.size(); ++position) {
-            query.addBindValue(playlist.id);
+            query.addBindValue(notNull(playlist.id));
             query.addBindValue(position);
-            query.addBindValue(playlist.trackIds.at(position));
+            query.addBindValue(notNull(playlist.trackIds.at(position)));
             ok = query.exec();
         }
     }
