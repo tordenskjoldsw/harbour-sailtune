@@ -22,7 +22,11 @@ namespace {
 const qint64 ReserveBytes = qint64(2) * 1024 * 1024 * 1024;
 // Far above a high-resolution FLAC track; a larger answer is not music.
 const qint64 MaxFileBytes = qint64(2) * 1024 * 1024 * 1024;
-const int RetryMs = 60000;
+// While paused: a fallback for a connection that stayed up while the
+// server was missing, as WLAN away from home before the VPN is on.
+const int RetryMs = 30000;
+// After the phone reports a new connection, routes and the VPN settle.
+const int OnlineDelayMs = 2000;
 // A restored queue starts after the app has settled.
 const int StartDelayMs = 3000;
 const int MaxQueue = 20000;
@@ -98,6 +102,23 @@ Downloads::Downloads(Sources *sources, QObject *parent)
     m_retry.setSingleShot(true);
     m_retry.setInterval(RetryMs);
     connect(&m_retry, &QTimer::timeout, this, &Downloads::resume);
+    // A paused queue continues as soon as the phone reports a connection
+    // instead of waiting for the next retry (seen on the device: up to a
+    // minute with the retry alone).
+    auto retrySoon = [this] {
+        if (m_paused && !m_queue.isEmpty())
+            m_retry.start(OnlineDelayMs);
+    };
+    connect(&m_networkState, &QNetworkConfigurationManager::onlineStateChanged, this,
+            [retrySoon](bool online) {
+                if (online)
+                    retrySoon();
+            });
+    connect(&m_networkState, &QNetworkConfigurationManager::configurationChanged, this,
+            [retrySoon](const QNetworkConfiguration &configuration) {
+                if (configuration.state().testFlag(QNetworkConfiguration::Active))
+                    retrySoon();
+            });
     loadQueue();
 }
 

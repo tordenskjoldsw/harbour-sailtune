@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QList>
 #include <QNetworkAccessManager>
+#include <QNetworkConfigurationManager>
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
@@ -99,6 +100,8 @@ private:
     Outcome m_abortOutcome = Outcome::Pause;
     bool m_paused = false;
     QTimer m_retry;
+    // Tells when the phone is online again, e.g. back in the home WLAN.
+    QNetworkConfigurationManager m_networkState;
     QString m_problem;
     int m_revision = 0;
 };

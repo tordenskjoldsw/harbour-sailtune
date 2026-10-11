@@ -117,7 +117,7 @@ Page {
                 color: downloads.paused ? Theme.errorColor : Theme.highlightColor
                 text: downloads.running ? qsTr("Downloading %1 (%2%), waiting: %3")
                                           .arg(downloads.current).arg(downloads.percent).arg(downloads.waiting)
-                      : downloads.paused ? qsTr("%1. Waiting: %2. SailTune tries again every minute while it runs.")
+                      : downloads.paused ? qsTr("%1. Waiting: %2. SailTune tries again as soon as the phone is online, and every 30 seconds while it runs.")
                                            .arg(downloads.problem).arg(downloads.waiting)
                       : qsTr("Nothing to download")
             }
