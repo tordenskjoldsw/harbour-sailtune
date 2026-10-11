@@ -38,7 +38,10 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
   WLAN off after a restart. An album without disc numbers shows no disc
   header and no gap.
 
-Phases 4 and 5 are done. Untested so far: Quick Connect.
+- Quick Connect (2026-10-11): logging in again with the code approved
+  in another Jellyfin client works.
+
+Phases 4 and 5 are done; Phase 6 (review and submission) is under way.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -193,7 +196,8 @@ MediaIndexing, to read the phone's music from the system's media index.
   classic login is refused with an explanation (section 14).
 - Jellyfin's Quick Connect (a code shown in the app, approved in another
   Jellyfin client) as a second way to log in, so the password need not
-  be typed on the phone (Phase 2, unverified on Jellyfin 12.2).
+  be typed on the phone (Phase 2; verified on Jellyfin 12.2,
+  2026-10-11).
 - Several servers, one active; one user per server.
 - A refused token keeps the library and the downloads; "Log in again"
   renews it. Removing a server calls `/Sessions/Logout`, deletes the
@@ -387,6 +391,12 @@ Emby, lyrics, sleep timer, German translation.
   album or a DJ mix matter; QtMultimedia 5.6 cannot avoid them.
 
 Decided:
+
+- First store version (2026-10-11): 0.5.0, as for SailVault and
+  SailToken, one minor version per finished phase; Phase 6 adds no
+  features. 0.5.x then carries fixes from the store's QA, 0.6.0 the
+  first features after it (OpenSubsonic). Not 1.0.0 while the server
+  families planned for v1 are not all there.
 
 - Reading the phone's music (2026-10-10): from the system's media index,
   no own tag reader. The source spike read 27 songs with title, artist,
