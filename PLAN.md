@@ -24,8 +24,12 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
 - Downloaded only (2026-10-11): the library filtered to downloaded
   music by a switch, and by itself while the server cannot be reached.
 
-Next (Phase 4 rest): keeping the download queue when the app closes,
-the storage overview in the settings. Untested so far: Quick Connect.
+- Downloads that pause and resume (2026-10-11): with WLAN off in the
+  middle of an album they pause and continue from the byte where they
+  stopped, soon after WLAN is back; the queue survives closing the app.
+  Settings show the space used, the free space and the largest albums.
+
+Phase 4 is done. Untested so far: Quick Connect.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -311,7 +315,7 @@ a server.
 Queue, now playing page, MPRIS, cover actions, seeking, resume after a
 restart, playback reporting while online.
 
-### Phase 4 - Offline (core done 2026-10-11)
+### Phase 4 - Offline (done 2026-10-11)
 
 Download manager, offline albums and playlists, start without network,
 storage overview and removal, the offline switch-over.
