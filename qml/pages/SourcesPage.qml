@@ -31,8 +31,17 @@ Page {
                 pageStack.pop()
             }
 
+            // Downloads of gigabytes come back only with time and the
+            // server, so a server that has some asks first and says how
+            // much goes; one without them has the usual countdown.
             function remove() {
-                remorseDelete(function() { sources.remove(modelData.id) })
+                var bytes = downloads.sourceBytes(modelData.id)
+                if (bytes > 0) {
+                    pageStack.push(removeDialog, { "sourceId": modelData.id, "sourceName": modelData.name,
+                                                   "bytes": bytes })
+                } else {
+                    remorseDelete(function() { sources.remove(modelData.id) })
+                }
             }
 
             Column {
@@ -77,5 +86,45 @@ Page {
         }
 
         VerticalScrollDecorator {}
+    }
+
+    Component {
+        id: removeDialog
+
+        Dialog {
+            property string sourceId
+            property string sourceName
+            property real bytes
+
+            onAccepted: sources.remove(sourceId)
+
+            Column {
+                width: parent.width
+                spacing: Theme.paddingLarge
+
+                DialogHeader {
+                    acceptText: qsTr("Remove")
+                    title: qsTr("Remove server?")
+                }
+
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    color: Theme.highlightColor
+                    textFormat: Text.PlainText
+                    text: qsTr("%1 and its downloaded music, %2, are removed from this phone. The music can be downloaded again only with a connection to the server.")
+                          .arg(sourceName).arg(Format.formatFileSize(bytes))
+                }
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryHighlightColor
+                    text: qsTr("To keep the music, keep the server; when its login has expired, log in again instead.")
+                }
+            }
+        }
     }
 }

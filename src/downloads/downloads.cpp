@@ -522,6 +522,12 @@ QVariantMap Downloads::storage() const
     return result;
 }
 
+double Downloads::sourceBytes(const QString &sourceId) const
+{
+    Source *source = m_sources->source(sourceId);
+    return source ? double(source->library()->downloadedBytes()) : 0;
+}
+
 QVariantList Downloads::largestAlbums(int limit) const
 {
     Source *source = m_sources->active();

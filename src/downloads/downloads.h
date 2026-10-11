@@ -57,6 +57,8 @@ public:
     // For the settings: "used" (bytes of every source's downloads) and
     // "free" (bytes free on the phone).
     Q_INVOKABLE QVariantMap storage() const;
+    // Bytes of one source's downloads, as a number QML can hold.
+    Q_INVOKABLE double sourceBytes(const QString &sourceId) const;
     // The active source's albums with downloads, largest first: "id",
     // "title", "artist", "bytes", "tracks".
     Q_INVOKABLE QVariantList largestAlbums(int limit) const;
