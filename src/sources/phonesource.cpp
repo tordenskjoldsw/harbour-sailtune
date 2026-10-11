@@ -212,7 +212,17 @@ LibrarySnapshot snapshotFromJsonLd(const QByteArray &data)
 
 PhoneSource::PhoneSource(const QString &directory, QObject *parent)
     : Source(QString::fromLatin1(Id), directory, parent)
+    , m_receiver(std::make_shared<Receiver>())
 {
+    m_receiver->source = this;
+}
+
+PhoneSource::~PhoneSource()
+{
+    // Waits for a handover in progress; a call it already queued is
+    // dropped with this object.
+    QMutexLocker lock(&m_receiver->mutex);
+    m_receiver->source = nullptr;
 }
 
 QString PhoneSource::kind() const
@@ -250,11 +260,15 @@ void PhoneSource::refresh()
     auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(call), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, watcher, &QObject::deleteLater);
     const int readFd = fds[0];
-    QtConcurrent::run([this, readFd] {
+    const std::shared_ptr<Receiver> receiver = m_receiver;
+    QtConcurrent::run([receiver, readFd] {
         QString error;
         const QByteArray data = readPipe(readFd, &error);
-        QMetaObject::invokeMethod(this, "onIndexRead", Qt::QueuedConnection,
-                                  Q_ARG(QByteArray, data), Q_ARG(QString, error));
+        QMutexLocker lock(&receiver->mutex);
+        if (receiver->source) {
+            QMetaObject::invokeMethod(receiver->source, "onIndexRead", Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, data), Q_ARG(QString, error));
+        }
     });
 }
 
