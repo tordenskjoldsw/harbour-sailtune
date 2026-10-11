@@ -74,6 +74,8 @@ private:
     enum class Outcome { Done, Pause, Skip, Restart };
 
     void startNext();
+    // Ends the running reply; its finished handler then does this.
+    void abortReply(Outcome outcome, const QString &problem);
     void finish(Outcome outcome, const QString &problem);
     void pause(const QString &problem);
     void setProblem(const QString &problem);
@@ -95,7 +97,8 @@ private:
     qint64 m_offset = 0;
     qint64 m_expected = -1;
     qint64 m_received = 0;
-    // Why this side aborted the reply, if it did, and what follows.
+    // Whether this side aborted the reply, why, and what follows.
+    bool m_aborted = false;
     QString m_abortProblem;
     Outcome m_abortOutcome = Outcome::Pause;
     bool m_paused = false;

@@ -341,6 +341,7 @@ void Downloads::startNext()
         request.setRawHeader("Range", "bytes=" + QByteArray::number(m_offset) + '-');
     m_expected = -1;
     m_received = 0;
+    m_aborted = false;
     m_abortProblem.clear();
     m_finalPath.clear();
     m_reply = m_network.get(request);
@@ -348,24 +349,44 @@ void Downloads::startNext()
     connect(m_reply, &QNetworkReply::metaDataChanged, this, [this] {
         const int status = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const qint64 length = m_reply->header(QNetworkRequest::ContentLengthHeader).toLongLong();
+        const QString type = m_reply->header(QNetworkRequest::ContentTypeHeader).toString().toLower();
+        // Removing the server deletes the source while its download runs.
+        if (!m_source) {
+            abortReply(Outcome::Skip, QString());
+            return;
+        }
+        // The body of any other answer is not read, so it is not received
+        // either.
+        if (status != 200 && status != 206) {
+            if (status == 416)
+                abortReply(Outcome::Restart, QString());
+            else if (status == 401 || status == 403)
+                abortReply(Outcome::Pause, tr("Downloads paused: log in again"));
+            else if ((status >= 300 && status < 400) || status == 502 || status == 503 || status == 504)
+                abortReply(Outcome::Pause, tr("Downloads paused until the server is reachable again"));
+            else
+                abortReply(Outcome::Skip, tr("A track could not be downloaded and was skipped"));
+            return;
+        }
+        // A page instead of music, as from a captive portal in a hotel
+        // WLAN, must not be stored as the track.
+        if (type.startsWith(QLatin1String("text/")) || type.contains(QLatin1String("json"))
+            || type.contains(QLatin1String("xml"))) {
+            abortReply(Outcome::Pause, tr("Downloads paused until the server is reachable again"));
+            return;
+        }
         if (status == 200 && m_offset > 0) {
             // The server sends the whole file instead of the rest.
             m_file.resize(0);
             m_offset = 0;
         }
-        if (status != 200 && status != 206)
-            return;
         m_expected = length > 0 ? m_offset + length : -1;
         if (m_expected > MaxFileBytes) {
-            m_abortProblem = tr("A track larger than 2 GB was skipped");
-            m_abortOutcome = Outcome::Skip;
-            m_reply->abort();
+            abortReply(Outcome::Skip, tr("A track larger than 2 GB was skipped"));
             return;
         }
         if (m_expected > 0 && !enoughSpace(m_source->downloadDirectory(), m_expected - m_offset)) {
-            m_abortProblem = tr("Downloads paused: less than 2 GB free on the phone");
-            m_abortOutcome = Outcome::Pause;
-            m_reply->abort();
+            abortReply(Outcome::Pause, tr("Downloads paused: less than 2 GB free on the phone"));
             return;
         }
         m_finalPath = m_source->downloadDirectory() + QLatin1Char('/') + id(m_track) + QLatin1Char('.')
@@ -377,9 +398,7 @@ void Downloads::startNext()
         const QByteArray data = m_reply->readAll();
         m_received += data.size();
         if (m_offset + m_received > MaxFileBytes || m_file.write(data) != data.size()) {
-            m_abortProblem = tr("Downloads paused: the file could not be written");
-            m_abortOutcome = Outcome::Pause;
-            m_reply->abort();
+            abortReply(Outcome::Pause, tr("Downloads paused: the file could not be written"));
             return;
         }
         emit progressChanged();
@@ -390,8 +409,10 @@ void Downloads::startNext()
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QNetworkReply::NetworkError error = reply->error();
         const qint64 size = m_offset + m_received;
-        if (!m_abortProblem.isEmpty()) {
+        if (m_aborted) {
             finish(m_abortOutcome, m_abortProblem);
+        } else if (!m_source) {
+            finish(Outcome::Skip, QString());
         } else if (error == QNetworkReply::NoError && !m_finalPath.isEmpty()
                    && (m_expected < 0 || size == m_expected)) {
             finish(Outcome::Done, QString());
@@ -411,6 +432,14 @@ void Downloads::startNext()
     emit progressChanged();
 }
 
+void Downloads::abortReply(Outcome outcome, const QString &problem)
+{
+    m_aborted = true;
+    m_abortOutcome = outcome;
+    m_abortProblem = problem;
+    m_reply->abort();
+}
+
 void Downloads::finish(Outcome outcome, const QString &problem)
 {
     m_file.close();
@@ -419,7 +448,7 @@ void Downloads::finish(Outcome outcome, const QString &problem)
     switch (outcome) {
     case Outcome::Done: {
         QFile::remove(m_finalPath);
-        const bool stored = QFile::rename(part, m_finalPath)
+        const bool stored = m_source && QFile::rename(part, m_finalPath)
             && m_source->library()->markDownloaded(id(m_track), m_finalPath, QFileInfo(m_finalPath).size());
         if (!stored)
             QFile::remove(part);
