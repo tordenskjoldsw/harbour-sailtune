@@ -10,6 +10,9 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
   playing page, lock screen controls (MPRIS) with seeking, cover
   actions, and resuming the exact track and position after the app was
   closed (Phase 3 core, pulled ahead of Jellyfin).
+- In daily use (2026-10-11): the phone's music played over Bluetooth in
+  the maintainer's car during a drive with the screen off, without
+  interruption, as the maintainer reported.
 
 Next: the Jellyfin source (section 11, Phase 2 part two).
 
