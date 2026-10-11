@@ -2,6 +2,7 @@
 #define SOURCES_H
 
 #include <QList>
+#include <QNetworkAccessManager>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
@@ -61,6 +62,7 @@ private:
     void add(Source *source);
 
     QList<Source *> m_sources;
+    QNetworkAccessManager m_network;
     Source *m_active = nullptr;
     bool m_downloadedOnly = false;
 };

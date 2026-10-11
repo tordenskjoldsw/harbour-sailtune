@@ -39,9 +39,11 @@ enum class Failure {
     Network,
     // The server refused the token or the credentials.
     Unauthorized,
-    // An answer that is no JSON object, too large, or misses a field, or
-    // an error status other than a refused token.
-    BadAnswer
+    // An answer that is no JSON object, too large, or misses a field.
+    BadAnswer,
+    // The server answered the call with an error, as for an item it no
+    // longer has; sending it again would not help.
+    Refused
 };
 
 using JsonHandler = std::function<void(Failure failure, const QJsonObject &answer)>;

@@ -13,6 +13,12 @@
 
 namespace {
 
+const int MaxNameLength = 200;
+const int MaxIdLength = 64;
+const int MaxSecretLength = 1024;
+// "true" or "false".
+const qint64 MaxFlagBytes = 1024;
+
 const int QuickConnectPollMs = 3000;
 // Quick Connect codes expire on the server after a few minutes.
 const int MaxQuickConnectPolls = 100;
@@ -142,11 +148,15 @@ void ServerSetup::check(const QString &typedAddress)
             return;
         }
         m_address = address;
-        m_serverName = name.isEmpty() ? QUrl(address).host() : name;
+        m_serverName = (name.isEmpty() ? QUrl(address).host() : name).left(MaxNameLength);
         // Whether Quick Connect is on decides if the login offers it.
         QNetworkRequest request(Jellyfin::url(address, QStringLiteral("/QuickConnect/Enabled")));
         request.setRawHeader("Authorization", Jellyfin::authorization(identity));
         QNetworkReply *reply = m_network.get(request);
+        connect(reply, &QNetworkReply::downloadProgress, reply, [reply](qint64 received, qint64 total) {
+            if (received > MaxFlagBytes || total > MaxFlagBytes)
+                reply->abort();
+        });
         connect(reply, &QNetworkReply::finished, this, [this, reply] {
             reply->deleteLater();
             // The answer is a bare "true" or "false", not a JSON object.
@@ -200,7 +210,9 @@ void ServerSetup::startQuickConnect()
                       [this](Jellyfin::Failure failure, const QJsonObject &answer) {
         m_quickConnectSecret = answer.value(QStringLiteral("Secret")).toString();
         m_quickConnectCode = answer.value(QStringLiteral("Code")).toString().left(16);
-        if (failure != Jellyfin::Failure::None || m_quickConnectSecret.isEmpty()) {
+        if (failure != Jellyfin::Failure::None || m_quickConnectSecret.isEmpty()
+            || m_quickConnectSecret.size() > MaxSecretLength) {
+            m_quickConnectSecret.clear();
             setProblem(QuickConnectFailed);
             setStep(EnterLogin);
             return;
@@ -265,7 +277,9 @@ void ServerSetup::pollQuickConnect()
 
 void ServerSetup::complete(const QString &token, const QString &userId, const QString &userName)
 {
-    if (!m_sources || userId.isEmpty()) {
+    // The token file is read back cut to MaxSecretLength, and the user id
+    // goes into every request.
+    if (!m_sources || userId.isEmpty() || userId.size() > MaxIdLength || token.size() > MaxSecretLength) {
         setProblem(ServerError);
         setStep(EnterLogin);
         return;

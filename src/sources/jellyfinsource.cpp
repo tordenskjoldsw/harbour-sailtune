@@ -20,8 +20,11 @@ const int MaxAlbums = 100000;
 const int MaxTracks = 300000;
 const int MaxPlaylists = 1000;
 const int MaxPlaylistTracks = 10000;
+// Over all playlists together.
+const int MaxPlaylistEntries = 200000;
 const qint64 TicksPerSecond = 10000000;
 const int MaxTextLength = 1024;
+const int MaxIdLength = 64;
 const QString UnknownAlbumId = QStringLiteral("unknown-album");
 const QString TokenFile = QStringLiteral("/token");
 const QString PendingFile = QStringLiteral("/pending.json");
@@ -124,11 +127,11 @@ void JellyfinSource::renewToken(const QString &token)
     refresh();
 }
 
-void JellyfinSource::logout()
+void JellyfinSource::logout(QNetworkAccessManager *network)
 {
     if (!m_token.isEmpty()) {
         // The answer does not matter; the token is gone on this side.
-        Jellyfin::request(&m_network, QStringLiteral("POST"),
+        Jellyfin::request(network, QStringLiteral("POST"),
                           Jellyfin::url(m_config.address, QStringLiteral("/Sessions/Logout")),
                           identity(), QByteArray(), [](Jellyfin::Failure, const QJsonObject &) {});
     }
@@ -263,6 +266,13 @@ void JellyfinSource::fetchPage(const QString &path, const Jellyfin::Query &query
                               onDone(failure);
                               return;
                           }
+                          // An empty answer must not read as an empty
+                          // library, which would empty the cache.
+                          if (!answer.value(QStringLiteral("Items")).isArray()
+                              || !answer.value(QStringLiteral("TotalRecordCount")).isDouble()) {
+                              onDone(Jellyfin::Failure::BadAnswer);
+                              return;
+                          }
                           const QJsonArray items = answer.value(QStringLiteral("Items")).toArray();
                           const int total = answer.value(QStringLiteral("TotalRecordCount")).toInt();
                           onItems(items);
@@ -285,6 +295,7 @@ void JellyfinSource::refresh()
     }
     setRefreshing(true);
     m_collecting = LibrarySnapshot();
+    m_playlistEntries = 0;
     m_serverFavorites.clear();
     m_favoritesDuringRefresh.clear();
     // The library read afterwards then already has the favorites and
@@ -427,8 +438,10 @@ void JellyfinSource::fetchPlaylistTracks(int index)
                  for (const QJsonValue &value : items) {
                      const QJsonObject item = value.toObject();
                      // A playlist may also hold videos, which SailTune leaves out.
-                     if (text(item, "Type") == QLatin1String("Audio"))
-                         m_collecting.playlists[index].trackIds.append(text(item, "Id"));
+                     if (text(item, "Type") == QLatin1String("Audio") && m_playlistEntries < MaxPlaylistEntries) {
+                         m_collecting.playlists[index].trackIds.append(text(item, "Id").left(MaxIdLength));
+                         ++m_playlistEntries;
+                     }
                  }
              },
              [this, index](Jellyfin::Failure failure) {
@@ -465,6 +478,10 @@ void JellyfinSource::finishRefresh(Jellyfin::Failure failure)
         break;
     case Jellyfin::Failure::BadAnswer:
         setProblem(tr("The server sent an answer SailTune cannot read"));
+        break;
+    case Jellyfin::Failure::Refused:
+        setReachable(true);
+        setProblem(tr("The server refused to send the library"));
         break;
     }
     m_collecting = LibrarySnapshot();
@@ -562,14 +579,17 @@ void JellyfinSource::sendNextPending()
             method = QStringLiteral("DELETE");
     }
     Jellyfin::request(&m_network, method, Jellyfin::url(m_config.address, path, query), identity(),
-                      QByteArray(), [this, entry](Jellyfin::Failure failure, const QJsonObject &) {
-                          if (failure == Jellyfin::Failure::Network) {
+                      QByteArray(), [this, entry](Jellyfin::Failure failure, const QJsonObject &answer) {
+                          // Both calls answer with the user data of the item;
+                          // anything else did not reach Jellyfin.
+                          if (failure == Jellyfin::Failure::None
+                              && !answer.value(QStringLiteral("IsFavorite")).isBool())
+                              failure = Jellyfin::Failure::BadAnswer;
+                          if (failure == Jellyfin::Failure::Network)
                               setReachable(false);
-                              finishFlush();
-                              return;
-                          }
-                          if (failure == Jellyfin::Failure::Unauthorized) {
+                          if (failure == Jellyfin::Failure::Unauthorized)
                               setNeedsLogin(true);
+                          if (failure != Jellyfin::Failure::None && failure != Jellyfin::Failure::Refused) {
                               finishFlush();
                               return;
                           }
@@ -647,6 +667,7 @@ QString JellyfinSource::playlistProblem(Jellyfin::Failure failure) const
     case Jellyfin::Failure::Unauthorized:
         return tr("Log in again to change playlists");
     case Jellyfin::Failure::BadAnswer:
+    case Jellyfin::Failure::Refused:
         break;
     }
     return tr("The server did not change the playlist");

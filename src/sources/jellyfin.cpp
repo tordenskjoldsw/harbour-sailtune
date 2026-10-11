@@ -99,10 +99,15 @@ void request(QNetworkAccessManager *network, const QString &method, const QUrl &
             handler(Failure::Unauthorized, QJsonObject());
             return;
         }
-        // The server answered but refused the call, as for an item it no
-        // longer has.
+        // A redirect, which Qt 5.6 does not follow, comes from something
+        // in front of the server, such as a captive portal; a gateway error
+        // from a proxy whose server is down. Neither is the server's answer.
+        if ((status >= 300 && status < 400) || status == 502 || status == 503 || status == 504) {
+            handler(Failure::Network, QJsonObject());
+            return;
+        }
         if (status >= 400) {
-            handler(Failure::BadAnswer, QJsonObject());
+            handler(Failure::Refused, QJsonObject());
             return;
         }
         if (reply->error() != QNetworkReply::NoError) {

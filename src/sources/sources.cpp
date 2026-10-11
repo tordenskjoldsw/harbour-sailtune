@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
@@ -20,6 +21,15 @@ const QString DownloadedOnlyKey = QStringLiteral("library/downloadedOnly");
 const QString ServersFile = QStringLiteral("/servers.json");
 const int MaxServers = 32;
 const qint64 MaxServersBytes = 1024 * 1024;
+
+// QUuid parses only the first 36 characters, so "<uuid>/../.." would
+// pass it; the id names a folder that removing the server deletes.
+bool plainId(const QString &id)
+{
+    static const QRegularExpression pattern(QStringLiteral(
+        "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"));
+    return pattern.match(id).hasMatch();
+}
 
 QString newId()
 {
@@ -114,8 +124,7 @@ void Sources::loadServers()
         config.userName = server.value(QStringLiteral("userName")).toString();
         config.userId = server.value(QStringLiteral("userId")).toString();
         config.deviceId = server.value(QStringLiteral("deviceId")).toString();
-        // The id names the source's folder, so it must stay a plain id.
-        if (QUuid(QLatin1Char('{') + config.id + QLatin1Char('}')).isNull() || config.address.isEmpty())
+        if (!plainId(config.id) || config.address.isEmpty())
             continue;
         add(new JellyfinSource(config, sourceDirectory(config.id), this));
     }
@@ -214,7 +223,9 @@ void Sources::remove(const QString &id)
         return;
     if (m_active == server)
         activate(QString::fromLatin1(PhoneSource::Id));
-    server->logout();
+    // The source and its network manager go now; the logout call goes out
+    // through this one.
+    server->logout(&m_network);
     m_sources.removeOne(server);
     const QString directory = server->directory();
     server->deleteLater();

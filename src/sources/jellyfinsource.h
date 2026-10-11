@@ -59,9 +59,9 @@ public:
 
     // Stores a new token after a login and refreshes.
     void renewToken(const QString &token);
-    // Ends the session on the server and deletes the token; the caller
-    // removes the source.
-    void logout();
+    // Ends the session on the server through network, which outlives the
+    // source, and deletes the token; the caller removes the source.
+    void logout(QNetworkAccessManager *network);
 
     static void writeToken(const QString &directory, const QString &token);
 
@@ -107,6 +107,7 @@ private:
     QNetworkAccessManager m_network;
     // The library while a refresh collects it.
     LibrarySnapshot m_collecting;
+    int m_playlistEntries = 0;
     QSet<QString> m_serverFavorites;
     // Favorites set while a refresh runs; its answer may predate them.
     QHash<QString, bool> m_favoritesDuringRefresh;
