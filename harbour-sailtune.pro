@@ -7,7 +7,10 @@ HEADERS += \
     src/library/librarydatabase.h \
     src/library/librarymodel.h \
     src/player/player.h \
+    src/sources/jellyfin.h \
+    src/sources/jellyfinsource.h \
     src/sources/phonesource.h \
+    src/sources/serversetup.h \
     src/sources/source.h \
     src/sources/sources.h
 
@@ -16,7 +19,10 @@ SOURCES += \
     src/library/librarydatabase.cpp \
     src/library/librarymodel.cpp \
     src/player/player.cpp \
+    src/sources/jellyfin.cpp \
+    src/sources/jellyfinsource.cpp \
     src/sources/phonesource.cpp \
+    src/sources/serversetup.cpp \
     src/sources/source.cpp \
     src/sources/sources.cpp
 
@@ -43,6 +49,7 @@ DISTFILES += \
     qml/pages/PlaylistPage.qml \
     qml/pages/PlaylistsPage.qml \
     qml/pages/SearchPage.qml \
+    qml/pages/ServerPage.qml \
     qml/pages/SourcesPage.qml \
     rpm/harbour-sailtune.changes \
     rpm/harbour-sailtune.spec \

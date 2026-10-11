@@ -9,6 +9,8 @@
 
 #include "library/librarymodel.h"
 #include "player/player.h"
+#include "sources/jellyfinsource.h"
+#include "sources/serversetup.h"
 #include "sources/source.h"
 #include "sources/sources.h"
 
@@ -24,6 +26,9 @@ int main(int argc, char *argv[])
     qmlRegisterType<LibraryModel>("harbour.sailtune", 1, 0, "LibraryModel");
     qmlRegisterUncreatableType<Source>("harbour.sailtune", 1, 0, "Source",
                                        QStringLiteral("Sources come from the app"));
+    qmlRegisterUncreatableType<JellyfinSource>("harbour.sailtune", 1, 0, "JellyfinSource",
+                                               QStringLiteral("Servers come from the app"));
+    qmlRegisterType<ServerSetup>("harbour.sailtune", 1, 0, "ServerSetup");
     qmlRegisterUncreatableType<Sources>("harbour.sailtune", 1, 0, "Sources",
                                         QStringLiteral("One list of sources for the app"));
 
