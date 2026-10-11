@@ -13,8 +13,16 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
 - In daily use (2026-10-11): the phone's music played over Bluetooth in
   the maintainer's car during a drive with the screen off, without
   interruption, as the maintainer reported.
+- Jellyfin (2026-10-11): adding the maintainer's server with user name
+  and password, reading its library, streaming from it (Phase 2 part
+  two).
+- Downloads (2026-10-11): an album downloaded and played with WLAN off
+  (Phase 4 core).
 
-Next: the Jellyfin source (section 11, Phase 2 part two).
+Next (Phase 4 rest): a "downloaded only" view for travelling without a
+network, keeping the download queue when the app closes, the storage
+overview in the settings. Untested so far: Quick Connect, and opening
+the server's library without a network.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -300,7 +308,7 @@ a server.
 Queue, now playing page, MPRIS, cover actions, seeking, resume after a
 restart, playback reporting while online.
 
-### Phase 4 - Offline
+### Phase 4 - Offline (core done 2026-10-11)
 
 Download manager, offline albums and playlists, start without network,
 storage overview and removal, the offline switch-over.
