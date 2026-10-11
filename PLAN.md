@@ -320,10 +320,11 @@ restart, playback reporting while online.
 Download manager, offline albums and playlists, start without network,
 storage overview and removal, the offline switch-over.
 
-### Phase 5 - Playlists and favorites
+### Phase 5 - Playlists, favorites and plays
 
-Playlists from the server (play and download; editing later),
-favorites, queued reporting of offline plays.
+Before the first store release (maintainer, 2026-10-11): plays reported
+to the server, offline ones queued; favorite tracks, from the server and
+set on the phone; "add to playlist" and "new playlist" while online.
 
 ### Phase 6 - Review and Harbour submission
 
@@ -336,7 +337,7 @@ tag, submission into the existing draft.
 First OpenSubsonic (`SubsonicServer`, API keys only; a spike against a
 Navidrome in Docker on the development PC checks which servers qualify).
 Then as decided: gapless playback, a quality choice for downloads,
-editing playlists, Emby, lyrics, sleep timer, German translation.
+Emby, lyrics, sleep timer, German translation.
 
 ## 12. Security principles
 
@@ -432,8 +433,11 @@ Decided:
   with a clear message before the phone's free space falls below a
   reserve (2 GB as a start). Settings show the space SailTune uses, the
   largest albums and "remove all downloads". A user-set limit can follow.
-- Playlists (2026-10-10): play and download in v1; creating and editing
-  them on the phone is noted for later (Phase 7).
+- Playlists (2026-10-10, widened 2026-10-11): play and download in v1;
+  also "add to playlist" (while listening or from a track) and "new
+  playlist" on the phone before the first store release, online only.
+  Building, sorting and cleaning up playlists stays on the server, where
+  the browser makes it easier and every client sees the same lists.
 
 - Name (2026-10-10): SailTune, `harbour-sailtune`, held as a draft in the
   maintainer's Harbour account with a name-check build; it must not be
