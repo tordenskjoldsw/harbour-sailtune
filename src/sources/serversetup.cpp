@@ -131,12 +131,27 @@ void ServerSetup::check(const QString &typedAddress)
     }
     setProblem(NoProblem);
     setStep(Checking);
+    // normalizedAddress adds http:// to an address without a scheme. A
+    // server behind https then answers on https, and one with plain http
+    // fails the TLS handshake at once, so trying https first costs little.
+    if (!typedAddress.contains(QStringLiteral("://")) && address.startsWith(QLatin1String("http://")))
+        checkAddress(QStringLiteral("https://") + address.mid(7), address);
+    else
+        checkAddress(address, QString());
+}
+
+void ServerSetup::checkAddress(const QString &address, const QString &fallback)
+{
     const Jellyfin::Identity identity{m_deviceId, QString()};
     Jellyfin::request(&m_network, QStringLiteral("GET"),
                       Jellyfin::url(address, QStringLiteral("/System/Info/Public")), identity,
-                      QByteArray(), [this, address, identity](Jellyfin::Failure failure, const QJsonObject &info) {
+                      QByteArray(), [this, address, fallback, identity](Jellyfin::Failure failure, const QJsonObject &info) {
         const QString product = info.value(QStringLiteral("ProductName")).toString();
         const QString name = info.value(QStringLiteral("ServerName")).toString().left(200);
+        if (failure == Jellyfin::Failure::Network && !fallback.isEmpty()) {
+            checkAddress(fallback, QString());
+            return;
+        }
         if (failure == Jellyfin::Failure::Network) {
             setProblem(Unreachable);
             setStep(EnterAddress);

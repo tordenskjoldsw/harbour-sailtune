@@ -64,7 +64,7 @@ Page {
                 visible: setup.step === ServerSetup.EnterAddress
                 width: parent.width
                 label: qsTr("Server address")
-                placeholderText: "192.168.1.10:8096"
+                placeholderText: "jellyfin.example.org"
                 inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
                 EnterKey.enabled: text.length > 0
                 EnterKey.iconSource: "image://theme/icon-m-enter-next"
@@ -74,8 +74,10 @@ Page {
             Label {
                 // Plain HTTP is for a server reached at home or through a
                 // VPN only (PLAN.md section 6).
-                visible: (setup.step === ServerSetup.EnterAddress && addressField.text.length > 0
-                          && addressField.text.trim().toLowerCase().indexOf("https://") !== 0)
+                // An address without a scheme tries https first, so the
+                // login step knows which one the server took.
+                visible: (setup.step === ServerSetup.EnterAddress
+                          && addressField.text.trim().toLowerCase().indexOf("http://") === 0)
                          || (setup.step === ServerSetup.EnterLogin && setup.address.indexOf("http://") === 0)
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin

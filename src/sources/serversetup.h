@@ -60,6 +60,8 @@ public:
     bool quickConnect() const;
     QString quickConnectCode() const;
 
+    // An address typed without a scheme is tried with https first, then
+    // with http.
     Q_INVOKABLE void check(const QString &typedAddress);
     Q_INVOKABLE void logIn(const QString &userName, const QString &password);
     Q_INVOKABLE void startQuickConnect();
@@ -77,6 +79,7 @@ signals:
     void finished();
 
 private:
+    void checkAddress(const QString &address, const QString &fallback);
     void setStep(Step step);
     void setProblem(Problem problem);
     void pollQuickConnect();
