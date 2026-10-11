@@ -74,6 +74,8 @@ void request(QNetworkAccessManager *network, const QString &method, const QUrl &
     if (method == QLatin1String("POST")) {
         request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
         reply = network->post(request, body);
+    } else if (method == QLatin1String("DELETE")) {
+        reply = network->deleteResource(request);
     } else {
         reply = network->get(request);
     }
@@ -95,6 +97,12 @@ void request(QNetworkAccessManager *network, const QString &method, const QUrl &
         }
         if (status == 401 || status == 403) {
             handler(Failure::Unauthorized, QJsonObject());
+            return;
+        }
+        // The server answered but refused the call, as for an item it no
+        // longer has.
+        if (status >= 400) {
+            handler(Failure::BadAnswer, QJsonObject());
             return;
         }
         if (reply->error() != QNetworkReply::NoError) {

@@ -51,6 +51,7 @@ const char *const Schema[] = {
     " PRIMARY KEY (playlist_id, position))",
     "CREATE TABLE IF NOT EXISTS downloads (track_id TEXT PRIMARY KEY, file TEXT NOT NULL,"
     " bytes INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS favorites (track_id TEXT PRIMARY KEY)",
     "CREATE INDEX IF NOT EXISTS albums_by_artist ON albums (artist_id)",
     "CREATE INDEX IF NOT EXISTS tracks_by_album ON tracks (album_id)",
 };
@@ -60,7 +61,8 @@ const char TrackColumns[] =
     "t.id AS id, t.title AS title, t.album_id AS albumId, t.album AS album,"
     " t.artist AS artist, t.disc AS disc, t.number AS number, t.seconds AS seconds,"
     " t.location AS location, COALESCE(a.image, '') AS image,"
-    " d.track_id IS NOT NULL AS downloaded";
+    " d.track_id IS NOT NULL AS downloaded,"
+    " EXISTS (SELECT 1 FROM favorites f WHERE f.track_id = t.id) AS favorite";
 
 } // namespace
 
@@ -106,6 +108,14 @@ bool LibraryDatabase::replace(const LibrarySnapshot &snapshot)
         && query.exec(QStringLiteral("DELETE FROM tracks"))
         && query.exec(QStringLiteral("DELETE FROM playlists"))
         && query.exec(QStringLiteral("DELETE FROM playlist_tracks"));
+    if (ok && snapshot.favoritesFromSource) {
+        ok = query.exec(QStringLiteral("DELETE FROM favorites"))
+            && query.prepare(QStringLiteral("INSERT OR REPLACE INTO favorites VALUES (?)"));
+        for (int i = 0; ok && i < snapshot.favoriteTrackIds.size(); ++i) {
+            query.addBindValue(notNull(snapshot.favoriteTrackIds.at(i)));
+            ok = query.exec();
+        }
+    }
 
     ok = ok && query.prepare(QStringLiteral("INSERT OR REPLACE INTO artists VALUES (?, ?, ?, ?)"));
     for (int i = 0; ok && i < snapshot.artists.size(); ++i) {
@@ -284,9 +294,71 @@ QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId, bool d
                   {playlistId});
 }
 
+QVariantList LibraryDatabase::favoriteTracks(bool downloadedOnly) const
+{
+    return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
+                      + QStringLiteral(" FROM favorites fav JOIN tracks t ON t.id = fav.track_id"
+                                       " LEFT JOIN albums a ON a.id = t.album_id"
+                                       " LEFT JOIN downloads d ON d.track_id = t.id"
+                                       " WHERE 1%1 ORDER BY t.artist, t.album, t.disc, t.number")
+                            .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
+                  {});
+}
+
+bool LibraryDatabase::setFavorite(const QString &trackId, bool favorite)
+{
+    if (!m_open)
+        return false;
+    QSqlQuery query(QSqlDatabase::database(m_connection));
+    if (!query.prepare(favorite ? QStringLiteral("INSERT OR REPLACE INTO favorites VALUES (?)")
+                                : QStringLiteral("DELETE FROM favorites WHERE track_id = ?")))
+        return false;
+    query.addBindValue(notNull(trackId));
+    return query.exec();
+}
+
+bool LibraryDatabase::appendToPlaylist(const QString &playlistId, const QString &name,
+                                       const QStringList &trackIds)
+{
+    if (!m_open)
+        return false;
+    QSqlDatabase database = QSqlDatabase::database(m_connection);
+    if (!database.transaction())
+        return false;
+    QSqlQuery query(database);
+    bool ok = query.prepare(QStringLiteral("INSERT OR IGNORE INTO playlists VALUES (?, ?, ?, '')"));
+    query.addBindValue(notNull(playlistId));
+    query.addBindValue(notNull(name));
+    query.addBindValue(notNull(sortKey(name)));
+    ok = ok && query.exec()
+        && query.prepare(QStringLiteral("SELECT COALESCE(MAX(position) + 1, 0) FROM playlist_tracks"
+                                        " WHERE playlist_id = ?"));
+    query.addBindValue(notNull(playlistId));
+    ok = ok && query.exec() && query.next();
+    int position = ok ? query.value(0).toInt() : 0;
+    ok = ok && query.prepare(QStringLiteral("INSERT INTO playlist_tracks VALUES (?, ?, ?)"));
+    for (int i = 0; ok && i < trackIds.size(); ++i) {
+        query.addBindValue(notNull(playlistId));
+        query.addBindValue(position++);
+        query.addBindValue(notNull(trackIds.at(i)));
+        ok = query.exec();
+    }
+    if (!ok) {
+        database.rollback();
+        return false;
+    }
+    return database.commit();
+}
+
+bool LibraryDatabase::isFavorite(const QString &trackId) const
+{
+    return !select(QStringLiteral("SELECT 1 AS yes FROM favorites WHERE track_id = ?"), {trackId}).isEmpty();
+}
+
 QVariantMap LibraryDatabase::counts(bool downloadedOnly) const
 {
     QVariantMap counts;
+    counts.insert(QStringLiteral("favorites"), favoriteTracks(downloadedOnly).size());
     counts.insert(QStringLiteral("artists"), artists(downloadedOnly).size());
     counts.insert(QStringLiteral("albums"), albums(QString(), downloadedOnly).size());
     counts.insert(QStringLiteral("playlists"), playlists(downloadedOnly).size());

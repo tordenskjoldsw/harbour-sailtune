@@ -35,7 +35,8 @@ public:
         PlaylistTracks,
         SearchArtists,
         SearchAlbums,
-        SearchTracks
+        SearchTracks,
+        FavoriteTracks
     };
     Q_ENUM(View)
 
@@ -52,7 +53,8 @@ public:
         NumberRole,
         SecondsRole,
         ImageRole,
-        DownloadedRole
+        DownloadedRole,
+        FavoriteRole
     };
 
     explicit LibraryModel(QObject *parent = nullptr);
@@ -88,6 +90,9 @@ private:
     // Without reset only the rows' content is replaced, for a caller that
     // reports the change itself.
     void reload(bool reset = true);
+    // After a download or a favorite: updates the marks in place when the
+    // rows stay the same, as a reset would scroll the list to the top.
+    void updateMarks();
 
     QPointer<Source> m_source;
     View m_view = Artists;

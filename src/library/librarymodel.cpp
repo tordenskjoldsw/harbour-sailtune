@@ -28,8 +28,10 @@ void LibraryModel::setSource(Source *source)
     if (m_source)
         disconnect(m_source, nullptr, this, nullptr);
     m_source = source;
-    if (m_source)
+    if (m_source) {
         connect(m_source, &Source::libraryChanged, this, [this] { reload(); });
+        connect(m_source, &Source::favoritesChanged, this, &LibraryModel::updateMarks);
+    }
     emit sourceChanged();
     reload();
 }
@@ -73,15 +75,18 @@ void LibraryModel::setRevision(int revision)
         return;
     m_revision = revision;
     emit revisionChanged();
-    // A finished download changes only the marks; a reset would scroll
-    // the list back to the top after every file.
+    updateMarks();
+}
+
+void LibraryModel::updateMarks()
+{
     const QVariantList before = m_rows;
     reload(false);
     bool sameRows = before.size() == m_rows.size();
     for (int i = 0; sameRows && i < m_rows.size(); ++i)
         sameRows = before.at(i).toMap().value(QStringLiteral("id")) == m_rows.at(i).toMap().value(QStringLiteral("id"));
     if (sameRows && !m_rows.isEmpty())
-        emit dataChanged(index(0), index(m_rows.size() - 1), {DownloadedRole});
+        emit dataChanged(index(0), index(m_rows.size() - 1), {DownloadedRole, FavoriteRole});
     else
         reload();
 }
@@ -145,6 +150,9 @@ void LibraryModel::reload(bool reset)
         case SearchTracks:
             m_rows = library->searchTracks(m_filter, only);
             break;
+        case FavoriteTracks:
+            m_rows = library->favoriteTracks(only);
+            break;
         }
     }
     if (reset)
@@ -186,6 +194,7 @@ QHash<int, QByteArray> LibraryModel::roleNames() const
         {SecondsRole, "seconds"},
         {ImageRole, "image"},
         {DownloadedRole, "downloaded"},
+        {FavoriteRole, "favorite"},
     };
 }
 

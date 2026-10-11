@@ -49,6 +49,42 @@ QVariantMap Source::counts(bool downloadedOnly) const
     return m_library->counts(downloadedOnly);
 }
 
+bool Source::isFavorite(const QString &trackId) const
+{
+    return m_library->isFavorite(trackId);
+}
+
+void Source::setFavorite(const QString &trackId, bool favorite)
+{
+    if (trackId.isEmpty() || !m_library->setFavorite(trackId, favorite))
+        return;
+    sendFavorite(trackId, favorite);
+    emit favoritesChanged();
+}
+
+void Source::sendFavorite(const QString &, bool)
+{
+}
+
+void Source::reportPlayed(const QString &)
+{
+}
+
+bool Source::canEditPlaylists() const
+{
+    return false;
+}
+
+void Source::addToPlaylist(const QString &, const QStringList &)
+{
+    emit playlistEditFinished(tr("Playlists of this source cannot be changed"));
+}
+
+void Source::createPlaylist(const QString &, const QStringList &)
+{
+    emit playlistEditFinished(tr("Playlists of this source cannot be changed"));
+}
+
 int Source::artistCount() const
 {
     return m_library->artistCount();

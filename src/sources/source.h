@@ -26,6 +26,8 @@ class Source : public QObject
     Q_PROPERTY(int trackCount READ trackCount NOTIFY libraryChanged)
     Q_PROPERTY(int playlistCount READ playlistCount NOTIFY libraryChanged)
     Q_PROPERTY(bool canDownload READ canDownload CONSTANT)
+    // Servers keep playlists; the phone's are read only.
+    Q_PROPERTY(bool canEditPlaylists READ canEditPlaylists CONSTANT)
     // False after the last refresh found no connection to the server, as
     // away from home without the VPN.
     Q_PROPERTY(bool reachable READ reachable NOTIFY reachableChanged)
@@ -41,8 +43,22 @@ public:
     bool refreshing() const;
     QString problem() const;
     bool reachable() const;
-    // "artists", "albums", "tracks" and "playlists" of the cache.
+    // "artists", "albums", "tracks", "playlists" and "favorites" of the
+    // cache.
     Q_INVOKABLE QVariantMap counts(bool downloadedOnly) const;
+
+    Q_INVOKABLE bool isFavorite(const QString &trackId) const;
+    // Marks the track in the cache at once; a server is told when it can
+    // be reached.
+    Q_INVOKABLE void setFavorite(const QString &trackId, bool favorite);
+    // The player calls this once a track counts as played.
+    virtual void reportPlayed(const QString &trackId);
+
+    virtual bool canEditPlaylists() const;
+    // Only while the server can be reached; the answer comes as
+    // playlistEditFinished.
+    Q_INVOKABLE virtual void addToPlaylist(const QString &playlistId, const QStringList &trackIds);
+    Q_INVOKABLE virtual void createPlaylist(const QString &name, const QStringList &trackIds);
 
     int artistCount() const;
     int albumCount() const;
@@ -74,6 +90,9 @@ signals:
     void problemChanged();
     void libraryChanged();
     void reachableChanged();
+    void favoritesChanged();
+    // problem is empty when the server took the change.
+    void playlistEditFinished(const QString &problem);
 
 protected:
     void setRefreshing(bool refreshing);
@@ -81,6 +100,8 @@ protected:
     void setReachable(bool reachable);
     // Stores a refresh in the cache and tells the pages.
     void store(const LibrarySnapshot &snapshot);
+    // Tells the server about a favorite set in the cache.
+    virtual void sendFavorite(const QString &trackId, bool favorite);
 
 private:
     QString m_id;

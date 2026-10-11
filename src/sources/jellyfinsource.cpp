@@ -1,6 +1,8 @@
 #include "jellyfinsource.h"
 
+#include <QDateTime>
 #include <QFile>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QUrlQuery>
@@ -19,6 +21,13 @@ const qint64 TicksPerSecond = 10000000;
 const int MaxTextLength = 1024;
 const QString UnknownAlbumId = QStringLiteral("unknown-album");
 const QString TokenFile = QStringLiteral("/token");
+const QString PendingFile = QStringLiteral("/pending.json");
+// Years of plays without a connection; beyond that the oldest go.
+const int MaxPending = 5000;
+const qint64 MaxPendingBytes = 2 * 1024 * 1024;
+const int MaxPlaylistName = 200;
+const QString PlayedAction = QStringLiteral("played");
+const QString FavoriteAction = QStringLiteral("favorite");
 
 // Text from the server, cut to a sane length.
 QString text(const QJsonObject &item, const char *key)
@@ -38,8 +47,9 @@ const Jellyfin::Query CommonQuery = {
     {QStringLiteral("Recursive"), QStringLiteral("true")},
     {QStringLiteral("EnableImageTypes"), QStringLiteral("Primary")},
     {QStringLiteral("ImageTypeLimit"), QStringLiteral("1")},
-    {QStringLiteral("EnableUserData"), QStringLiteral("false")},
 };
+
+const QPair<QString, QString> WithoutUserData = {QStringLiteral("EnableUserData"), QStringLiteral("false")};
 
 } // namespace
 
@@ -51,6 +61,7 @@ JellyfinSource::JellyfinSource(const Config &config, const QString &directory, Q
     if (file.open(QIODevice::ReadOnly))
         m_token = QString::fromUtf8(file.readAll()).trimmed().left(MaxTextLength);
     m_needsLogin = m_token.isEmpty();
+    loadPending();
 }
 
 QString JellyfinSource::kind() const
@@ -206,6 +217,15 @@ void JellyfinSource::refresh()
     }
     setRefreshing(true);
     m_collecting = LibrarySnapshot();
+    m_serverFavorites.clear();
+    m_favoritesDuringRefresh.clear();
+    // The library read afterwards then already has the favorites and
+    // plays made without a connection.
+    flushPending([this] { fetchLibrary(); });
+}
+
+void JellyfinSource::fetchLibrary()
+{
     Jellyfin::Query query = CommonQuery;
     query.append({QStringLiteral("userId"), m_config.userId});
 
@@ -213,6 +233,7 @@ void JellyfinSource::refresh()
     // when the one before has every page.
     auto playlists = [this, query] {
         Jellyfin::Query playlistQuery = query;
+        playlistQuery.append(WithoutUserData);
         playlistQuery.append({QStringLiteral("IncludeItemTypes"), QStringLiteral("Playlist")});
         fetchAll(QStringLiteral("/Items"), playlistQuery, MaxPlaylists,
                  [this](const QJsonArray &items) {
@@ -234,7 +255,9 @@ void JellyfinSource::refresh()
                  });
     };
     auto tracks = [this, query, playlists] {
+        // The user data carries the favorite mark.
         Jellyfin::Query trackQuery = query;
+        trackQuery.append({QStringLiteral("EnableUserData"), QStringLiteral("true")});
         trackQuery.append({QStringLiteral("IncludeItemTypes"), QStringLiteral("Audio")});
         fetchAll(QStringLiteral("/Items"), trackQuery, MaxTracks,
                  [this](const QJsonArray &items) {
@@ -256,6 +279,9 @@ void JellyfinSource::refresh()
                          track.number = item.value(QStringLiteral("IndexNumber")).toInt();
                          track.seconds = int(qint64(item.value(QStringLiteral("RunTimeTicks")).toDouble())
                                              / TicksPerSecond);
+                         if (item.value(QStringLiteral("UserData")).toObject()
+                                 .value(QStringLiteral("IsFavorite")).toBool())
+                             m_serverFavorites.insert(track.id);
                          m_collecting.tracks.append(track);
                      }
                  },
@@ -268,6 +294,7 @@ void JellyfinSource::refresh()
     };
     auto albums = [this, query, tracks] {
         Jellyfin::Query albumQuery = query;
+        albumQuery.append(WithoutUserData);
         albumQuery.append({QStringLiteral("IncludeItemTypes"), QStringLiteral("MusicAlbum")});
         fetchAll(QStringLiteral("/Items"), albumQuery, MaxAlbums,
                  [this](const QJsonArray &items) {
@@ -294,7 +321,9 @@ void JellyfinSource::refresh()
                          tracks();
                  });
     };
-    fetchAll(QStringLiteral("/Artists/AlbumArtists"), query, MaxArtists,
+    Jellyfin::Query artistQuery = query;
+    artistQuery.append(WithoutUserData);
+    fetchAll(QStringLiteral("/Artists/AlbumArtists"), artistQuery, MaxArtists,
              [this](const QJsonArray &items) {
                  for (const QJsonValue &value : items) {
                      const QJsonObject item = value.toObject();
@@ -350,7 +379,10 @@ void JellyfinSource::finishRefresh(Jellyfin::Failure failure)
         setProblem(QString());
         setNeedsLogin(false);
         setReachable(true);
+        m_collecting.favoritesFromSource = true;
+        m_collecting.favoriteTrackIds = favoritesAfterRefresh();
         store(m_collecting);
+        emit favoritesChanged();
         break;
     case Jellyfin::Failure::Unauthorized:
         setReachable(true);
@@ -366,4 +398,236 @@ void JellyfinSource::finishRefresh(Jellyfin::Failure failure)
         break;
     }
     m_collecting = LibrarySnapshot();
+    m_serverFavorites.clear();
+    m_favoritesDuringRefresh.clear();
+}
+
+QVector<QString> JellyfinSource::favoritesAfterRefresh() const
+{
+    QSet<QString> favorites = m_serverFavorites;
+    QHash<QString, bool> changes = m_favoritesDuringRefresh;
+    for (const QJsonValue &value : m_pending) {
+        const QJsonObject entry = value.toObject();
+        if (entry.value(QStringLiteral("action")).toString() == FavoriteAction)
+            changes.insert(entry.value(QStringLiteral("id")).toString(), entry.value(QStringLiteral("value")).toBool());
+    }
+    for (auto change = changes.constBegin(); change != changes.constEnd(); ++change) {
+        if (change.value())
+            favorites.insert(change.key());
+        else
+            favorites.remove(change.key());
+    }
+    QVector<QString> ids;
+    ids.reserve(favorites.size());
+    for (const QString &id : favorites)
+        ids.append(id);
+    return ids;
+}
+
+void JellyfinSource::reportPlayed(const QString &trackId)
+{
+    QJsonObject entry;
+    entry.insert(QStringLiteral("action"), PlayedAction);
+    entry.insert(QStringLiteral("id"), trackId);
+    entry.insert(QStringLiteral("date"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
+    addPending(entry);
+}
+
+void JellyfinSource::sendFavorite(const QString &trackId, bool favorite)
+{
+    if (refreshing())
+        m_favoritesDuringRefresh.insert(trackId, favorite);
+    // Only the last change of a track counts.
+    for (int i = m_pending.size() - 1; i >= 0; --i) {
+        const QJsonObject entry = m_pending.at(i).toObject();
+        if (entry.value(QStringLiteral("action")).toString() == FavoriteAction
+            && entry.value(QStringLiteral("id")).toString() == trackId)
+            m_pending.removeAt(i);
+    }
+    QJsonObject entry;
+    entry.insert(QStringLiteral("action"), FavoriteAction);
+    entry.insert(QStringLiteral("id"), trackId);
+    entry.insert(QStringLiteral("value"), favorite);
+    addPending(entry);
+}
+
+void JellyfinSource::addPending(const QJsonObject &entry)
+{
+    if (entry.value(QStringLiteral("id")).toString().isEmpty())
+        return;
+    m_pending.append(entry);
+    while (m_pending.size() > MaxPending)
+        m_pending.removeFirst();
+    savePending();
+    flushPending();
+}
+
+void JellyfinSource::flushPending(const std::function<void()> &then)
+{
+    if (then)
+        m_afterFlush.append(then);
+    if (!m_flushing)
+        sendNextPending();
+}
+
+void JellyfinSource::sendNextPending()
+{
+    if (m_pending.isEmpty() || m_token.isEmpty()) {
+        finishFlush();
+        return;
+    }
+    m_flushing = true;
+    const QJsonObject entry = m_pending.first().toObject();
+    const QString action = entry.value(QStringLiteral("action")).toString();
+    const QString id = entry.value(QStringLiteral("id")).toString();
+    QString method = QStringLiteral("POST");
+    QString path;
+    Jellyfin::Query query = {{QStringLiteral("userId"), m_config.userId}};
+    if (action == PlayedAction) {
+        path = QStringLiteral("/UserPlayedItems/%1").arg(id);
+        query.append({QStringLiteral("datePlayed"), entry.value(QStringLiteral("date")).toString()});
+    } else {
+        path = QStringLiteral("/UserFavoriteItems/%1").arg(id);
+        if (!entry.value(QStringLiteral("value")).toBool())
+            method = QStringLiteral("DELETE");
+    }
+    Jellyfin::request(&m_network, method, Jellyfin::url(m_config.address, path, query), identity(),
+                      QByteArray(), [this, entry](Jellyfin::Failure failure, const QJsonObject &) {
+                          if (failure == Jellyfin::Failure::Network) {
+                              setReachable(false);
+                              finishFlush();
+                              return;
+                          }
+                          if (failure == Jellyfin::Failure::Unauthorized) {
+                              setNeedsLogin(true);
+                              finishFlush();
+                              return;
+                          }
+                          // Done, or refused for good, as for a track the
+                          // server no longer has; either way it is not sent
+                          // again. A later change of the same favorite has
+                          // replaced the entry and still goes out.
+                          for (int i = 0; i < m_pending.size(); ++i) {
+                              if (m_pending.at(i).toObject() == entry) {
+                                  m_pending.removeAt(i);
+                                  break;
+                              }
+                          }
+                          savePending();
+                          sendNextPending();
+                      });
+}
+
+void JellyfinSource::finishFlush()
+{
+    m_flushing = false;
+    const QList<std::function<void()>> calls = m_afterFlush;
+    m_afterFlush.clear();
+    for (const std::function<void()> &call : calls)
+        call();
+}
+
+void JellyfinSource::loadPending()
+{
+    QFile file(directory() + PendingFile);
+    if (!file.open(QIODevice::ReadOnly) || file.size() > MaxPendingBytes)
+        return;
+    const QJsonArray entries = QJsonDocument::fromJson(file.readAll()).array();
+    for (const QJsonValue &value : entries) {
+        const QJsonObject entry = value.toObject();
+        const QString action = entry.value(QStringLiteral("action")).toString();
+        const QString id = entry.value(QStringLiteral("id")).toString();
+        // The id becomes part of a URL path.
+        if ((action != PlayedAction && action != FavoriteAction) || id.isEmpty() || id.size() > 64
+            || id.contains(QLatin1Char('/')) || id.contains(QLatin1Char('?')) || id.contains(QLatin1Char('#')))
+            continue;
+        m_pending.append(entry);
+        if (m_pending.size() >= MaxPending)
+            break;
+    }
+}
+
+void JellyfinSource::savePending() const
+{
+    const QString path = directory() + PendingFile;
+    if (m_pending.isEmpty()) {
+        QFile::remove(path);
+        return;
+    }
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return;
+    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+    file.write(QJsonDocument(m_pending).toJson(QJsonDocument::Compact));
+    file.commit();
+}
+
+bool JellyfinSource::canEditPlaylists() const
+{
+    return true;
+}
+
+QString JellyfinSource::playlistProblem(Jellyfin::Failure failure) const
+{
+    switch (failure) {
+    case Jellyfin::Failure::None:
+        return QString();
+    case Jellyfin::Failure::Network:
+        return tr("The server cannot be reached");
+    case Jellyfin::Failure::Unauthorized:
+        return tr("Log in again to change playlists");
+    case Jellyfin::Failure::BadAnswer:
+        break;
+    }
+    return tr("The server did not change the playlist");
+}
+
+void JellyfinSource::addToPlaylist(const QString &playlistId, const QStringList &trackIds)
+{
+    if (playlistId.isEmpty() || trackIds.isEmpty() || trackIds.size() > MaxPlaylistTracks) {
+        emit playlistEditFinished(playlistProblem(Jellyfin::Failure::BadAnswer));
+        return;
+    }
+    Jellyfin::request(&m_network, QStringLiteral("POST"),
+                      Jellyfin::url(m_config.address, QStringLiteral("/Playlists/%1/Items").arg(playlistId),
+                                    {{QStringLiteral("ids"), trackIds.join(QLatin1Char(','))},
+                                     {QStringLiteral("userId"), m_config.userId}}),
+                      identity(), QByteArray(),
+                      [this, playlistId, trackIds](Jellyfin::Failure failure, const QJsonObject &) {
+                          if (failure == Jellyfin::Failure::Unauthorized)
+                              setNeedsLogin(true);
+                          if (failure == Jellyfin::Failure::None) {
+                              library()->appendToPlaylist(playlistId, QString(), trackIds);
+                              emit libraryChanged();
+                          }
+                          emit playlistEditFinished(playlistProblem(failure));
+                      });
+}
+
+void JellyfinSource::createPlaylist(const QString &name, const QStringList &trackIds)
+{
+    const QString trimmed = name.trimmed().left(MaxPlaylistName);
+    if (trimmed.isEmpty() || trackIds.size() > MaxPlaylistTracks) {
+        emit playlistEditFinished(playlistProblem(Jellyfin::Failure::BadAnswer));
+        return;
+    }
+    QJsonObject body;
+    body.insert(QStringLiteral("Name"), trimmed);
+    body.insert(QStringLiteral("Ids"), QJsonArray::fromStringList(trackIds));
+    body.insert(QStringLiteral("UserId"), m_config.userId);
+    body.insert(QStringLiteral("MediaType"), QStringLiteral("Audio"));
+    Jellyfin::request(&m_network, QStringLiteral("POST"), Jellyfin::url(m_config.address, QStringLiteral("/Playlists")),
+                      identity(), QJsonDocument(body).toJson(QJsonDocument::Compact),
+                      [this, trimmed, trackIds](Jellyfin::Failure failure, const QJsonObject &answer) {
+                          const QString playlistId = answer.value(QStringLiteral("Id")).toString().left(MaxTextLength);
+                          if (failure == Jellyfin::Failure::None && playlistId.isEmpty())
+                              failure = Jellyfin::Failure::BadAnswer;
+                          if (failure == Jellyfin::Failure::Unauthorized)
+                              setNeedsLogin(true);
+                          if (failure == Jellyfin::Failure::None) {
+                              library()->appendToPlaylist(playlistId, trimmed, trackIds);
+                              emit libraryChanged();
+                          }
+                          emit playlistEditFinished(playlistProblem(failure));
+                      });
 }

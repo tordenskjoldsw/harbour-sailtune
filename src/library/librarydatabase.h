@@ -50,6 +50,10 @@ struct LibrarySnapshot {
     QVector<LibraryAlbum> albums;
     QVector<LibraryTrack> tracks;
     QVector<LibraryPlaylist> playlists;
+    // A server knows its user's favorites, and a refresh takes them over;
+    // the phone's favorites live only in the cache and stay.
+    bool favoritesFromSource = false;
+    QVector<QString> favoriteTrackIds;
 };
 
 // The cache of one source in its own SQLite file. The UI reads only from
@@ -82,8 +86,14 @@ public:
     QVariantList searchArtists(const QString &term, bool downloadedOnly) const;
     QVariantList searchAlbums(const QString &term, bool downloadedOnly) const;
     QVariantList searchTracks(const QString &term, bool downloadedOnly) const;
-    // "artists", "albums", "tracks" and "playlists".
+    QVariantList favoriteTracks(bool downloadedOnly) const;
+    // "artists", "albums", "tracks", "playlists" and "favorites".
     QVariantMap counts(bool downloadedOnly) const;
+    bool setFavorite(const QString &trackId, bool favorite);
+    // After the server took the tracks: appends them to the playlist,
+    // which is added with this name when the cache does not have it yet.
+    bool appendToPlaylist(const QString &playlistId, const QString &name, const QStringList &trackIds);
+    bool isFavorite(const QString &trackId) const;
     // The tracks with these ids in this order; ids no longer cached are
     // left out.
     QVariantList tracksByIds(const QStringList &ids) const;

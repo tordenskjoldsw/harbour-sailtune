@@ -30,6 +30,7 @@ class Player : public QObject
     Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
     Q_PROPERTY(bool seekable READ seekable NOTIFY seekableChanged)
     Q_PROPERTY(QString problem READ problem NOTIFY problemChanged)
+    Q_PROPERTY(bool favorite READ favorite NOTIFY favoriteChanged)
 
 public:
     Player(Sources *sources, QObject *parent = nullptr);
@@ -48,6 +49,7 @@ public:
     qint64 duration() const;
     bool seekable() const;
     QString problem() const;
+    bool favorite() const;
 
     // Plays tracks of the active source's cache (LibraryModel rows) from
     // index on, replacing the queue.
@@ -61,6 +63,7 @@ public:
     Q_INVOKABLE void previous();
     Q_INVOKABLE void seek(qint64 milliseconds);
     Q_INVOKABLE void seekBy(qint64 milliseconds);
+    Q_INVOKABLE void toggleFavorite();
 
 signals:
     void trackChanged();
@@ -70,9 +73,14 @@ signals:
     void durationChanged();
     void seekableChanged();
     void problemChanged();
+    void favoriteChanged();
 
 private:
+    void setSource(Source *source);
     void load(int index, bool start);
+    // Adds a step of the position while playing; a track counts as played
+    // after half of it or four minutes, whichever comes first.
+    void countListening(qint64 step);
     void onStateChanged(QMediaPlayer::State state);
     void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
     void setProblem(const QString &problem);
@@ -99,6 +107,9 @@ private:
     // 0, and the system stops it when the app closes (seen on the device),
     // so the saved position must not follow it.
     qint64 m_lastPosition = 0;
+    // Listened to of the current track, seeks left out.
+    qint64 m_listened = 0;
+    bool m_reported = false;
     QString m_problem;
 };
 

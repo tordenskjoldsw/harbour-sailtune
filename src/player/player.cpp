@@ -20,6 +20,10 @@ const int MaxSavedTracks = 2000;
 // Sailfish may end the app without aboutToQuit when it is swiped away,
 // so the position is also written while playing: two numbers, rarely.
 const qint64 SaveIntervalMs = 15000;
+// The rule of the common scrobbling services.
+const qint64 PlayedAfterMs = 4 * 60 * 1000;
+// A larger step of the position is a seek, not listening.
+const qint64 MaxListenStepMs = 2000;
 
 const QString SourceKey = QStringLiteral("queue/source");
 const QString TracksKey = QStringLiteral("queue/tracks");
@@ -42,6 +46,8 @@ Player::Player(Sources *sources, QObject *parent)
     connect(&m_media, &QMediaPlayer::stateChanged, this, &Player::onStateChanged);
     connect(&m_media, &QMediaPlayer::mediaStatusChanged, this, &Player::onMediaStatusChanged);
     connect(&m_media, &QMediaPlayer::positionChanged, this, [this](qint64 position) {
+        if (m_media.state() == QMediaPlayer::PlayingState)
+            countListening(position - m_lastPosition);
         if (m_media.state() != QMediaPlayer::StoppedState)
             m_lastPosition = position;
         emit positionChanged();
@@ -54,6 +60,7 @@ Player::Player(Sources *sources, QObject *parent)
     connect(&m_media, &QMediaPlayer::seekableChanged, this, &Player::resumeIfReady);
     connect(&m_media, &QMediaPlayer::durationChanged, this, &Player::durationChanged);
     connect(&m_media, &QMediaPlayer::seekableChanged, this, &Player::seekableChanged);
+    connect(this, &Player::trackChanged, this, &Player::favoriteChanged);
     // QMediaPlayer::error is overloaded with the getter; the signal is
     // picked by its signature.
     connect(&m_media, static_cast<void (QMediaPlayer::*)(QMediaPlayer::Error)>(&QMediaPlayer::error),
@@ -141,11 +148,46 @@ QString Player::problem() const
     return m_problem;
 }
 
+bool Player::favorite() const
+{
+    return hasTrack() && m_source && m_source->isFavorite(trackId());
+}
+
+void Player::toggleFavorite()
+{
+    if (hasTrack() && m_source)
+        m_source->setFavorite(trackId(), !favorite());
+}
+
+void Player::setSource(Source *source)
+{
+    if (m_source == source)
+        return;
+    if (m_source)
+        disconnect(m_source, nullptr, this, nullptr);
+    m_source = source;
+    if (m_source)
+        connect(m_source, &Source::favoritesChanged, this, &Player::favoriteChanged);
+}
+
+void Player::countListening(qint64 step)
+{
+    if (m_reported || step <= 0 || step > MaxListenStepMs || !hasTrack() || !m_source)
+        return;
+    m_listened += step;
+    const qint64 duration = m_media.duration();
+    const qint64 needed = duration > 0 ? qMin(duration / 2, PlayedAfterMs) : PlayedAfterMs;
+    if (m_listened >= needed) {
+        m_reported = true;
+        m_source->reportPlayed(trackId());
+    }
+}
+
 void Player::playTracks(const QVariantList &tracks, int index)
 {
     if (tracks.isEmpty() || index < 0 || index >= tracks.size())
         return;
-    m_source = m_sources->active();
+    setSource(m_sources->active());
     m_queue = tracks;
     m_resumeAt = -1;
     emit queueChanged();
@@ -162,6 +204,8 @@ void Player::load(int index, bool start)
     m_index = index;
     m_savedAt = 0;
     m_lastPosition = 0;
+    m_listened = 0;
+    m_reported = false;
     setProblem(QString());
     m_media.setMedia(m_source->playableUrl(m_queue.at(index).toMap()));
     emit trackChanged();
@@ -309,7 +353,7 @@ void Player::restoreQueue()
     const int index = settings.value(IndexKey).toInt();
     if (tracks.isEmpty() || index < 0 || index >= tracks.size())
         return;
-    m_source = source;
+    setSource(source);
     m_queue = tracks;
     emit queueChanged();
     // Set before loading: loading saves the position, which must stay the

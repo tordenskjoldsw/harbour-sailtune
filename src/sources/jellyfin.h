@@ -39,13 +39,14 @@ enum class Failure {
     Network,
     // The server refused the token or the credentials.
     Unauthorized,
-    // An answer that is no JSON object, too large, or misses a field.
+    // An answer that is no JSON object, too large, or misses a field, or
+    // an error status other than a refused token.
     BadAnswer
 };
 
 using JsonHandler = std::function<void(Failure failure, const QJsonObject &answer)>;
 
-// GET or POST with a JSON answer of at most MaxAnswerBytes. The handler
+// GET, POST or DELETE with a JSON answer of at most MaxAnswerBytes. The handler
 // runs once, on the thread of the manager.
 void request(QNetworkAccessManager *network, const QString &method, const QUrl &url,
              const Identity &identity, const QByteArray &body, const JsonHandler &handler);
