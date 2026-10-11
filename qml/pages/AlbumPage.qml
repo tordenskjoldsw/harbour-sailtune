@@ -9,8 +9,11 @@ Page {
     property string albumTitle
     property string albumArtist
     property url albumImage
-    // Disc headers only for albums of more than one disc.
+    // Disc headers only for albums of more than one known disc; 0 means
+    // the file names none.
     property bool severalDiscs
+    // Per row: whether a new disc starts there.
+    property var discStarts: []
 
     function duration(seconds) {
         var rest = seconds % 60
@@ -81,36 +84,45 @@ Page {
             onCountChanged: {
                 var rows = this.rows()
                 var discs = {}
-                for (var i = 0; i < rows.length; ++i)
-                    discs[rows[i].disc] = true
-                severalDiscs = Object.keys(discs).length > 1
-            }
-        }
-
-        section {
-            property: "disc"
-            delegate: SectionHeader {
-                visible: severalDiscs
-                height: visible ? implicitHeight : 0
-                text: qsTr("Disc %1").arg(section)
-            }
-        }
-
-        delegate: TwoLineItem {
-            showImage: false
-            downloaded: model.downloaded
-            favorite: model.favorite
-            menu: Component {
-                TrackMenu {
-                    trackId: model.id
-                    favorite: model.favorite
+                var starts = []
+                for (var i = 0; i < rows.length; ++i) {
+                    if (rows[i].disc > 0)
+                        discs[rows[i].disc] = true
+                    starts.push(rows[i].disc > 0 && (i === 0 || rows[i - 1].disc !== rows[i].disc))
                 }
+                severalDiscs = Object.keys(discs).length > 1
+                discStarts = starts
             }
-            highlighted: down || player.trackId === model.id
-            onClicked: player.playTracks(tracks.rows(), index)
-            title: (model.number > 0 ? model.number + ". " : "") + model.title
-            description: (model.artist !== albumArtist ? model.artist + ", " : "")
-                         + (model.seconds > 0 ? duration(model.seconds) : "")
+        }
+
+        // The header is part of the row: a ListView section header that
+        // changed its height after the layout left a gap on the device
+        // (screenshot, 2026-10-11).
+        delegate: Column {
+            width: ListView.view.width
+
+            SectionHeader {
+                visible: severalDiscs && discStarts[index] === true
+                text: qsTr("Disc %1").arg(model.disc)
+            }
+
+            TwoLineItem {
+                width: parent.width
+                showImage: false
+                downloaded: model.downloaded
+                favorite: model.favorite
+                menu: Component {
+                    TrackMenu {
+                        trackId: model.id
+                        favorite: model.favorite
+                    }
+                }
+                highlighted: down || player.trackId === model.id
+                onClicked: player.playTracks(tracks.rows(), index)
+                title: (model.number > 0 ? model.number + ". " : "") + model.title
+                description: (model.artist !== albumArtist ? model.artist + ", " : "")
+                             + (model.seconds > 0 ? duration(model.seconds) : "")
+            }
         }
 
         VerticalScrollDecorator {}
