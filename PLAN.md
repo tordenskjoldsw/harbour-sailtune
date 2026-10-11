@@ -195,15 +195,13 @@ MediaIndexing, to read the phone's music from the system's media index.
   Jellyfin client) as a second way to log in, so the password need not
   be typed on the phone (Phase 2, unverified on Jellyfin 12.2).
 - Several servers, one active; one user per server.
-- Logging out calls `/Sessions/Logout`, deletes the token, and asks
-  whether to keep the downloads.
+- A refused token keeps the library and the downloads; "Log in again"
+  renews it. Removing a server calls `/Sessions/Logout`, deletes the
+  token, its cache and its downloads (section 14).
 - HTTPS is recommended; plain HTTP is allowed for a server reached only
-  at home or through a VPN, with a note in the login page. A self-signed
-  certificate is accepted only after the user confirms its fingerprint,
-  as in SailToken's sync, for the calls of the Jellyfin client.
-  QtMultimedia's own TLS cannot be pinned, so v1 streams only over HTTP
-  inside a VPN or HTTPS with a certificate the phone trusts (section
-  14).
+  at home or through a VPN, with a note in the login page. v1 accepts
+  only certificates the phone trusts; a self-signed one is not offered
+  for confirmation (section 14).
 
 ## 7. Offline and downloads
 
@@ -432,6 +430,13 @@ Decided:
   cannot pin a self-signed certificate (Sailfin's developer reports the
   same); streaming through a local progressive download by QtNetwork,
   which can pin, stays a later option.
+- Self-signed certificates (2026-10-11): not in v1. The server is
+  reached over plain HTTP inside the VPN or over HTTPS with a
+  certificate the phone trusts. Confirming a fingerprint would cover the
+  Jellyfin calls but not streaming, which QtMultimedia cannot pin.
+- Removing a server (2026-10-11): deletes its downloads with the rest
+  of its data; without the server's library they could not be found or
+  played in the app. Keeping them is what "Log in again" is for.
 - Playback reporting (2026-10-10): plays go to the server (play counts,
   "recently played", resume); offline plays are queued and sent when the
   server is reachable again.
