@@ -88,6 +88,7 @@ Page {
                             width: parent.width
                             truncationMode: TruncationMode.Fade
                             color: albumItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+                            textFormat: Text.PlainText
                             text: modelData.title
                         }
                         Label {

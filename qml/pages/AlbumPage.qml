@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components/Plain.js" as Plain
 import harbour.sailtune 1.0
 import "../components"
 
@@ -56,8 +57,8 @@ Page {
             spacing: Theme.paddingMedium
 
             PageHeader {
-                title: albumTitle
-                description: albumArtist
+                title: Plain.text(albumTitle)
+                description: Plain.text(albumArtist)
             }
 
             DownloadState {

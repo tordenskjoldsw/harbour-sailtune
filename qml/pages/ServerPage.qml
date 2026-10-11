@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components/Plain.js" as Plain
 import harbour.sailtune 1.0
 
 // Adds a Jellyfin server, or logs in to one again when sourceId is set:
@@ -54,7 +55,7 @@ Page {
 
             PageHeader {
                 title: page.sourceId.length > 0 ? qsTr("Log in again") : qsTr("Add Jellyfin server")
-                description: setup.serverName
+                description: Plain.text(setup.serverName)
             }
 
             TextField {

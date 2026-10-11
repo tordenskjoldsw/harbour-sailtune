@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components/Plain.js" as Plain
 import harbour.sailtune 1.0
 
 // The start page: the active source's library from its cache, never a
@@ -61,7 +62,7 @@ Page {
             width: parent.width
 
             PageHeader {
-                title: page.source.name
+                title: Plain.text(page.source.name)
                 description: page.source.refreshing ? qsTr("Updating the library")
                              : page.source.problem.length > 0 ? page.source.problem
                              : page.empty ? "" : qsTr("Tracks: %1").arg(page.counts.tracks)
@@ -103,6 +104,7 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin - countLabel.width
                 truncationMode: TruncationMode.Fade
                 color: highlighted ? Theme.highlightColor : Theme.primaryColor
+                textFormat: Text.PlainText
                 text: modelData.title
             }
             Label {

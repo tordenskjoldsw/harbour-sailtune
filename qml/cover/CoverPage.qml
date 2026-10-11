@@ -21,6 +21,7 @@ CoverBackground {
             wrapMode: Text.Wrap
             truncationMode: TruncationMode.Fade
             font.pixelSize: Theme.fontSizeSmall
+            textFormat: Text.PlainText
             text: player.hasTrack ? player.title : (sources.active ? sources.active.name : "SailTune")
         }
     }

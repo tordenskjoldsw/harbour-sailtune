@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components/Plain.js" as Plain
 import harbour.sailtune 1.0
 import "../components"
 
@@ -12,7 +13,7 @@ Page {
 
     SilicaListView {
         anchors.fill: parent
-        header: PageHeader { title: artistName }
+        header: PageHeader { title: Plain.text(artistName) }
 
         model: LibraryModel {
             source: sources.active

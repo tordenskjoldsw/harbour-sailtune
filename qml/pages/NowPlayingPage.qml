@@ -54,6 +54,7 @@ Page {
                     wrapMode: Text.Wrap
                     font.pixelSize: Theme.fontSizeLarge
                     color: Theme.highlightColor
+                    textFormat: Text.PlainText
                     text: player.title
                 }
                 Label {
@@ -61,6 +62,7 @@ Page {
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
                     color: Theme.secondaryHighlightColor
+                    textFormat: Text.PlainText
                     text: player.artist + (player.album.length > 0 ? " - " + player.album : "")
                 }
                 Label {
@@ -69,6 +71,7 @@ Page {
                     wrapMode: Text.Wrap
                     color: Theme.errorColor
                     visible: text.length > 0
+                    textFormat: Text.PlainText
                     text: player.problem
                 }
             }

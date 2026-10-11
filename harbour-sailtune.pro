@@ -41,6 +41,7 @@ DISTFILES += \
     qml/components/AlbumArt.qml \
     qml/components/DownloadState.qml \
     qml/components/MiniPlayer.qml \
+    qml/components/Plain.js \
     qml/components/TrackMenu.qml \
     qml/components/TwoLineItem.qml \
     qml/cover/CoverPage.qml \

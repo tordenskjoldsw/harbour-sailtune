@@ -12,6 +12,7 @@ Label {
     wrapMode: Text.Wrap
     font.pixelSize: Theme.fontSizeExtraSmall
     color: downloads.problem.length > 0 ? Theme.errorColor : Theme.secondaryHighlightColor
+    textFormat: Text.PlainText
     text: downloads.paused ? qsTr("%1. Waiting: %2").arg(downloads.problem).arg(downloads.waiting)
           : downloads.problem.length > 0 ? downloads.problem
           : downloads.running ? qsTr("Downloading %1 (%2%), waiting: %3")

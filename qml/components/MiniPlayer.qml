@@ -33,6 +33,7 @@ DockedPanel {
             Label {
                 width: parent.width
                 truncationMode: TruncationMode.Fade
+                textFormat: Text.PlainText
                 text: player.title
             }
             Label {
@@ -40,6 +41,7 @@ DockedPanel {
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryColor
+                textFormat: Text.PlainText
                 text: player.problem.length > 0 ? player.problem : player.artist
             }
         }

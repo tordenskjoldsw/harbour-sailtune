@@ -33,6 +33,7 @@ ListItem {
             width: parent.width
             truncationMode: TruncationMode.Fade
             color: item.highlighted ? Theme.highlightColor : Theme.primaryColor
+            textFormat: Text.PlainText
             text: item.title
         }
         Row {
@@ -62,6 +63,7 @@ ListItem {
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+                textFormat: Text.PlainText
                 text: item.description
             }
         }

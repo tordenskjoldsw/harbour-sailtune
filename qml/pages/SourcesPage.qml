@@ -44,6 +44,7 @@ Page {
                     width: parent.width
                     truncationMode: TruncationMode.Fade
                     color: modelData.active || item.highlighted ? Theme.highlightColor : Theme.primaryColor
+                    textFormat: Text.PlainText
                     text: modelData.name
                 }
                 Label {
@@ -51,6 +52,7 @@ Page {
                     truncationMode: TruncationMode.Fade
                     font.pixelSize: Theme.fontSizeExtraSmall
                     color: modelData.needsLogin ? Theme.errorColor : Theme.secondaryColor
+                    textFormat: Text.PlainText
                     text: modelData.needsLogin ? qsTr("Log in again from the menu")
                                                : modelData.kind === "phone" ? qsTr("Music on this phone")
                                                                             : modelData.detail
