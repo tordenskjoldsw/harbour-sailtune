@@ -29,7 +29,16 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
   stopped, soon after WLAN is back; the queue survives closing the app.
   Settings show the space used, the free space and the largest albums.
 
-Phase 4 is done. Untested so far: Quick Connect.
+- Plays, favorites and playlists (2026-10-11): a track played on the
+  phone shows on the Jellyfin dashboard; favorites go from the phone to
+  the server and back, one set without WLAN reached the server after
+  the next library update; a track added to a server playlist and a new
+  playlist created from the phone, both seen in the app and in Jellyfin.
+- Covers offline (2026-10-11): covers of downloaded albums show with
+  WLAN off after a restart. An album without disc numbers shows no disc
+  header and no gap.
+
+Phases 4 and 5 are done. Untested so far: Quick Connect.
 
 SailTune is the third app after SailVault and SailToken. It shares no
 code with them; their build, release and Harbour experience carries over
@@ -320,11 +329,14 @@ restart, playback reporting while online.
 Download manager, offline albums and playlists, start without network,
 storage overview and removal, the offline switch-over.
 
-### Phase 5 - Playlists, favorites and plays
+### Phase 5 - Playlists, favorites and plays (done 2026-10-11)
 
 Before the first store release (maintainer, 2026-10-11): plays reported
 to the server, offline ones queued; favorite tracks, from the server and
 set on the phone; "add to playlist" and "new playlist" while online.
+Done and verified on the device, with covers of downloaded music kept
+for offline use. A favorite or play made offline goes out with the next
+library update or the next play or favorite.
 
 ### Phase 6 - Review and Harbour submission
 
