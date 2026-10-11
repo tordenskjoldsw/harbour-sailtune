@@ -7,6 +7,8 @@ import harbour.sailtune 1.0
 Page {
     id: page
 
+    objectName: "libraryPage"
+
     readonly property var source: sources.active
     readonly property bool empty: source.trackCount === 0
 
@@ -22,6 +24,11 @@ Page {
             MenuItem {
                 text: qsTr("Sources")
                 onClicked: pageStack.push(Qt.resolvedUrl("SourcesPage.qml"))
+            }
+            MenuItem {
+                text: qsTr("Log in again")
+                visible: page.source.needsLogin === true
+                onClicked: pageStack.push(Qt.resolvedUrl("ServerPage.qml"), { "sourceId": page.source.id })
             }
             MenuItem {
                 text: qsTr("Update library")
