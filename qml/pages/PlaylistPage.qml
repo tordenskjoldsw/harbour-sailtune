@@ -51,6 +51,13 @@ Page {
             title: model.title
             description: model.artist
             downloaded: model.downloaded
+            favorite: model.favorite
+            menu: Component {
+                TrackMenu {
+                    trackId: model.id
+                    favorite: model.favorite
+                }
+            }
             onClicked: player.playTracks(tracks.rows(), index)
         }
 

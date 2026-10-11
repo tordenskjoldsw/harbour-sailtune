@@ -41,15 +41,18 @@ DISTFILES += \
     qml/components/AlbumArt.qml \
     qml/components/DownloadState.qml \
     qml/components/MiniPlayer.qml \
+    qml/components/TrackMenu.qml \
     qml/components/TwoLineItem.qml \
     qml/cover/CoverPage.qml \
     qml/pages/AlbumPage.qml \
     qml/pages/AlbumsPage.qml \
     qml/pages/ArtistPage.qml \
     qml/pages/ArtistsPage.qml \
+    qml/pages/FavoritesPage.qml \
     qml/pages/LibraryPage.qml \
     qml/pages/NowPlayingPage.qml \
     qml/pages/PlaylistPage.qml \
+    qml/pages/PlaylistPickerPage.qml \
     qml/pages/PlaylistsPage.qml \
     qml/pages/SearchPage.qml \
     qml/pages/ServerPage.qml \

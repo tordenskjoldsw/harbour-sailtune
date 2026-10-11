@@ -16,6 +16,17 @@ Page {
         anchors.fill: parent
         contentHeight: column.height + Theme.paddingLarge
 
+        PullDownMenu {
+            visible: sources.active.canEditPlaylists && player.hasTrack
+            MenuItem {
+                // Playlists change on the server only.
+                enabled: sources.active.reachable && sources.active.needsLogin !== true
+                text: qsTr("Add to playlist")
+                onClicked: pageStack.push(Qt.resolvedUrl("PlaylistPickerPage.qml"),
+                                          { "trackIds": [player.trackId] })
+            }
+        }
+
         Column {
             id: column
 
@@ -60,6 +71,14 @@ Page {
                     visible: text.length > 0
                     text: player.problem
                 }
+            }
+
+            IconButton {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: player.hasTrack
+                icon.source: player.favorite ? "image://theme/icon-m-favorite-selected"
+                                             : "image://theme/icon-m-favorite"
+                onClicked: player.toggleFavorite()
             }
 
             Slider {

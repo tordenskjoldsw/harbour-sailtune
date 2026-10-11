@@ -98,6 +98,14 @@ Page {
                     image: model.image
                     title: model.title
                     description: model.artist + " - " + model.album
+                    downloaded: model.downloaded
+                    favorite: model.favorite
+                    menu: Component {
+                        TrackMenu {
+                            trackId: model.id
+                            favorite: model.favorite
+                        }
+                    }
                     onClicked: player.playTracks(tracks.rows(), index)
                 }
             }

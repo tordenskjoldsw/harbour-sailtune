@@ -23,15 +23,27 @@ Page {
         anchors.fill: parent
 
         PullDownMenu {
-            visible: sources.active.canDownload
+            visible: sources.active.canDownload || sources.active.canEditPlaylists
+            MenuItem {
+                text: qsTr("Add album to playlist")
+                visible: sources.active.canEditPlaylists && tracks.count > 0
+                enabled: sources.active.reachable && sources.active.needsLogin !== true
+                onClicked: {
+                    var rows = tracks.rows()
+                    var ids = []
+                    for (var i = 0; i < rows.length; ++i)
+                        ids.push(rows[i].id)
+                    pageStack.push(Qt.resolvedUrl("PlaylistPickerPage.qml"), { "trackIds": ids })
+                }
+            }
             MenuItem {
                 text: qsTr("Remove download")
-                visible: tracks.downloadedCount > 0
+                visible: sources.active.canDownload && tracks.downloadedCount > 0
                 onClicked: downloads.remove(tracks.rows())
             }
             MenuItem {
                 text: qsTr("Download album")
-                visible: tracks.downloadedCount < tracks.count
+                visible: sources.active.canDownload && tracks.downloadedCount < tracks.count
                 onClicked: downloads.download(tracks.rows())
             }
         }
@@ -87,6 +99,13 @@ Page {
         delegate: TwoLineItem {
             showImage: false
             downloaded: model.downloaded
+            favorite: model.favorite
+            menu: Component {
+                TrackMenu {
+                    trackId: model.id
+                    favorite: model.favorite
+                }
+            }
             highlighted: down || player.trackId === model.id
             onClicked: player.playTracks(tracks.rows(), index)
             title: (model.number > 0 ? model.number + ". " : "") + model.title

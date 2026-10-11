@@ -11,6 +11,7 @@ ListItem {
     property string description
     // Marks a track that plays without a network.
     property bool downloaded
+    property bool favorite
 
     contentHeight: Theme.itemSizeMedium
 
@@ -37,8 +38,16 @@ ListItem {
         Row {
             width: parent.width
             spacing: Theme.paddingSmall
-            visible: item.description.length > 0 || item.downloaded
+            visible: item.description.length > 0 || item.downloaded || item.favorite
 
+            HighlightImage {
+                visible: item.favorite
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.iconSizeExtraSmall
+                height: width
+                source: "image://theme/icon-s-favorite"
+                highlighted: item.highlighted
+            }
             HighlightImage {
                 visible: item.downloaded
                 anchors.verticalCenter: parent.verticalCenter
@@ -49,6 +58,7 @@ ListItem {
             }
             Label {
                 width: parent.width - (item.downloaded ? Theme.iconSizeExtraSmall + parent.spacing : 0)
+                       - (item.favorite ? Theme.iconSizeExtraSmall + parent.spacing : 0)
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor

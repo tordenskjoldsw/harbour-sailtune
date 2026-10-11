@@ -11,15 +11,24 @@ Page {
 
     readonly property var source: sources.active
     readonly property bool onlyDownloaded: sources.showingDownloadedOnly
-    // Read again whenever the library, the downloads or the filter change.
+    // Raised when a favorite changes, which the counts below follow.
+    property int favoritesRevision
+    // Read again whenever the library, the downloads, the favorites or the
+    // filter change.
     readonly property var counts: {
         source.trackCount
         downloads.revision
+        favoritesRevision
         return source.counts(onlyDownloaded)
     }
     readonly property bool empty: counts.tracks === 0
 
     allowedOrientations: Orientation.All
+
+    Connections {
+        target: page.source
+        onFavoritesChanged: page.favoritesRevision++
+    }
 
     SilicaListView {
         id: list
@@ -81,7 +90,8 @@ Page {
         model: page.empty ? [] : [
             { "title": qsTr("Artists"), "count": page.counts.artists, "page": "ArtistsPage.qml" },
             { "title": qsTr("Albums"), "count": page.counts.albums, "page": "AlbumsPage.qml" },
-            { "title": qsTr("Playlists"), "count": page.counts.playlists, "page": "PlaylistsPage.qml" }
+            { "title": qsTr("Playlists"), "count": page.counts.playlists, "page": "PlaylistsPage.qml" },
+            { "title": qsTr("Favorites"), "count": page.counts.favorites, "page": "FavoritesPage.qml" }
         ]
 
         delegate: ListItem {
