@@ -4,10 +4,21 @@ A music player for Sailfish OS for the music on your own server. It
 streams while the server is reachable, at home or over a VPN, and plays
 albums and playlists downloaded to the phone without any network.
 
-**Status:** early development, not usable yet. The first version is
-planned for Jellyfin; the plan is in [PLAN.md](PLAN.md), and the results
-of the playback spike on the Jolla Phone are in
-[spikes/playback/README.md](spikes/playback/README.md).
+**Status:** ready for its first release, 0.5.0, which is being prepared
+for the Jolla Store. The plan is in [PLAN.md](PLAN.md), the security
+review in [docs/security-review-2026-10.md](docs/security-review-2026-10.md)
+and the privacy policy in [PRIVACY.md](PRIVACY.md).
+
+## Features
+
+- The music on the phone, with its album art, and the music on Jellyfin
+  servers; login with password or Quick Connect.
+- Downloads of albums, playlists and favorites for offline play, with
+  their covers; downloads resume after a lost connection or a restart.
+- Player with lock screen and cover controls that resumes the exact
+  position after the app was closed.
+- Favorites and plays synced with the server, also when made offline;
+  adding to a playlist and creating one on the server.
 
 ## Building
 
