@@ -71,6 +71,20 @@ Page {
                 EnterKey.onClicked: setup.check(text)
             }
 
+            Label {
+                // Plain HTTP is for a server reached at home or through a
+                // VPN only (PLAN.md section 6).
+                visible: (setup.step === ServerSetup.EnterAddress && addressField.text.length > 0
+                          && addressField.text.trim().toLowerCase().indexOf("https://") !== 0)
+                         || (setup.step === ServerSetup.EnterLogin && setup.address.indexOf("http://") === 0)
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: Theme.secondaryHighlightColor
+                text: qsTr("Without https, the password and the access token travel unencrypted. Use this only at home or through a VPN.")
+            }
+
             Button {
                 visible: setup.step === ServerSetup.EnterAddress
                 anchors.horizontalCenter: parent.horizontalCenter
