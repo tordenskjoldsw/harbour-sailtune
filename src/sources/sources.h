@@ -19,6 +19,11 @@ class Sources : public QObject
     Q_OBJECT
     Q_PROPERTY(Source *active READ active NOTIFY activeChanged)
     Q_PROPERTY(QVariantList all READ all NOTIFY allChanged)
+    // The user's choice to see only downloaded music of a server.
+    Q_PROPERTY(bool downloadedOnly READ downloadedOnly WRITE setDownloadedOnly NOTIFY downloadedOnlyChanged)
+    // What the library pages follow: the choice, or the active server
+    // being out of reach.
+    Q_PROPERTY(bool showingDownloadedOnly READ showingDownloadedOnly NOTIFY showingDownloadedOnlyChanged)
 
 public:
     explicit Sources(QObject *parent = nullptr);
@@ -27,6 +32,9 @@ public:
     // One map per source: "id", "name", "kind", "active", "detail",
     // "needsLogin".
     QVariantList all() const;
+    bool downloadedOnly() const;
+    void setDownloadedOnly(bool downloadedOnly);
+    bool showingDownloadedOnly() const;
     JellyfinSource *jellyfin(const QString &id) const;
 
     Q_INVOKABLE void activate(const QString &id);
@@ -40,6 +48,8 @@ public:
 signals:
     void activeChanged();
     void allChanged();
+    void downloadedOnlyChanged();
+    void showingDownloadedOnlyChanged();
 
 private:
     QString configDirectory() const;
@@ -50,6 +60,7 @@ private:
 
     QList<Source *> m_sources;
     Source *m_active = nullptr;
+    bool m_downloadedOnly = false;
 };
 
 #endif // SOURCES_H

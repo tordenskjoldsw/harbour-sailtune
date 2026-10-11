@@ -218,49 +218,84 @@ QVariantList LibraryDatabase::select(const QString &sql, const QVariantList &val
     return rows;
 }
 
-QVariantList LibraryDatabase::artists() const
+// An album or an artist counts as downloaded when one of its tracks is.
+const char AlbumHasDownload[] =
+    "EXISTS (SELECT 1 FROM tracks tx JOIN downloads dx ON dx.track_id = tx.id"
+    " WHERE tx.album_id = al.id)";
+
+QVariantList LibraryDatabase::artists(bool downloadedOnly) const
 {
     return select(QStringLiteral(
-        "SELECT ar.id AS id, ar.name AS title, COUNT(al.id) AS count, ar.image AS image"
-        " FROM artists ar LEFT JOIN albums al ON al.artist_id = ar.id"
-        " GROUP BY ar.id ORDER BY ar.sort_name"), {});
+                      "SELECT ar.id AS id, ar.name AS title, COUNT(al.id) AS count, ar.image AS image"
+                      " FROM artists ar LEFT JOIN albums al ON al.artist_id = ar.id%1"
+                      " GROUP BY ar.id%2 ORDER BY ar.sort_name")
+                      .arg(downloadedOnly ? QStringLiteral(" AND ") + QLatin1String(AlbumHasDownload) : QString(),
+                           downloadedOnly ? QStringLiteral(" HAVING COUNT(al.id) > 0") : QString()),
+                  {});
 }
 
-QVariantList LibraryDatabase::albums(const QString &artistId) const
+QVariantList LibraryDatabase::albums(const QString &artistId, bool downloadedOnly) const
 {
-    const QString columns = QStringLiteral(
-        "SELECT id, title, artist, year, image, artist_id AS artistId FROM albums");
-    if (artistId.isEmpty())
-        return select(columns + QStringLiteral(" ORDER BY sort_title"), {});
-    return select(columns + QStringLiteral(" WHERE artist_id = ? ORDER BY year, sort_title"),
-                  {artistId});
+    QString sql = QStringLiteral(
+        "SELECT al.id AS id, al.title AS title, al.artist AS artist, al.year AS year,"
+        " al.image AS image, al.artist_id AS artistId FROM albums al WHERE 1");
+    QVariantList values;
+    if (!artistId.isEmpty()) {
+        sql += QStringLiteral(" AND al.artist_id = ?");
+        values.append(artistId);
+    }
+    if (downloadedOnly)
+        sql += QStringLiteral(" AND ") + QLatin1String(AlbumHasDownload);
+    sql += artistId.isEmpty() ? QStringLiteral(" ORDER BY al.sort_title")
+                              : QStringLiteral(" ORDER BY al.year, al.sort_title");
+    return select(sql, values);
 }
 
-QVariantList LibraryDatabase::tracksOfAlbum(const QString &albumId) const
+QVariantList LibraryDatabase::tracksOfAlbum(const QString &albumId, bool downloadedOnly) const
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
                                        " LEFT JOIN downloads d ON d.track_id = t.id"
-                                       " WHERE t.album_id = ? ORDER BY t.disc, t.number, t.title"),
+                                       " WHERE t.album_id = ?%1 ORDER BY t.disc, t.number, t.title")
+                            .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
                   {albumId});
 }
 
-QVariantList LibraryDatabase::playlists() const
+QVariantList LibraryDatabase::playlists(bool downloadedOnly) const
 {
     return select(QStringLiteral(
-        "SELECT p.id AS id, p.name AS title, COUNT(pt.track_id) AS count, p.image AS image"
-        " FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id"
-        " GROUP BY p.id ORDER BY p.sort_name"), {});
+                      "SELECT p.id AS id, p.name AS title, COUNT(pt.track_id) AS count, p.image AS image"
+                      " FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id%1"
+                      " GROUP BY p.id%2 ORDER BY p.sort_name")
+                      .arg(downloadedOnly ? QStringLiteral(" AND pt.track_id IN (SELECT track_id FROM downloads)")
+                                          : QString(),
+                           downloadedOnly ? QStringLiteral(" HAVING COUNT(pt.track_id) > 0") : QString()),
+                  {});
 }
 
-QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId) const
+QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId, bool downloadedOnly) const
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM playlist_tracks pt JOIN tracks t ON t.id = pt.track_id"
                                        " LEFT JOIN albums a ON a.id = t.album_id"
                                        " LEFT JOIN downloads d ON d.track_id = t.id"
-                                       " WHERE pt.playlist_id = ? ORDER BY pt.position"),
+                                       " WHERE pt.playlist_id = ?%1 ORDER BY pt.position")
+                            .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
                   {playlistId});
+}
+
+QVariantMap LibraryDatabase::counts(bool downloadedOnly) const
+{
+    QVariantMap counts;
+    counts.insert(QStringLiteral("artists"), artists(downloadedOnly).size());
+    counts.insert(QStringLiteral("albums"), albums(QString(), downloadedOnly).size());
+    counts.insert(QStringLiteral("playlists"), playlists(downloadedOnly).size());
+    const QVariantList tracks = select(
+        downloadedOnly ? QStringLiteral("SELECT COUNT(*) AS n FROM tracks t JOIN downloads d ON d.track_id = t.id")
+                       : QStringLiteral("SELECT COUNT(*) AS n FROM tracks"),
+        {});
+    counts.insert(QStringLiteral("tracks"), tracks.isEmpty() ? 0 : tracks.first().toMap().value(QStringLiteral("n")));
+    return counts;
 }
 
 QVariantList LibraryDatabase::tracksByIds(const QStringList &ids) const
@@ -315,30 +350,35 @@ qint64 LibraryDatabase::downloadedBytes() const
     return rows.isEmpty() ? 0 : rows.first().toMap().value(QStringLiteral("bytes")).toLongLong();
 }
 
-QVariantList LibraryDatabase::searchArtists(const QString &term) const
+QVariantList LibraryDatabase::searchArtists(const QString &term, bool downloadedOnly) const
 {
-    return select(QStringLiteral("SELECT id, name AS title, image FROM artists"
-                                 " WHERE name LIKE ? ESCAPE '\\' ORDER BY sort_name LIMIT %1")
+    return select(QStringLiteral("SELECT ar.id AS id, ar.name AS title, ar.image AS image FROM artists ar"
+                                 " WHERE ar.name LIKE ? ESCAPE '\\'%1 ORDER BY ar.sort_name LIMIT %2")
+                      .arg(downloadedOnly ? QStringLiteral(" AND EXISTS (SELECT 1 FROM albums al WHERE"
+                                                           " al.artist_id = ar.id AND ")
+                                                + QLatin1String(AlbumHasDownload) + QLatin1Char(')')
+                                          : QString())
                       .arg(SearchLimit),
                   {likePattern(term)});
 }
 
-QVariantList LibraryDatabase::searchAlbums(const QString &term) const
+QVariantList LibraryDatabase::searchAlbums(const QString &term, bool downloadedOnly) const
 {
-    return select(QStringLiteral("SELECT id, title, artist, year, image, artist_id AS artistId"
-                                 " FROM albums WHERE title LIKE ? ESCAPE '\\'"
-                                 " ORDER BY sort_title LIMIT %1")
+    return select(QStringLiteral("SELECT al.id AS id, al.title AS title, al.artist AS artist, al.year AS year,"
+                                 " al.image AS image, al.artist_id AS artistId FROM albums al"
+                                 " WHERE al.title LIKE ? ESCAPE '\\'%1 ORDER BY al.sort_title LIMIT %2")
+                      .arg(downloadedOnly ? QStringLiteral(" AND ") + QLatin1String(AlbumHasDownload) : QString())
                       .arg(SearchLimit),
                   {likePattern(term)});
 }
 
-QVariantList LibraryDatabase::searchTracks(const QString &term) const
+QVariantList LibraryDatabase::searchTracks(const QString &term, bool downloadedOnly) const
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
                                        " LEFT JOIN downloads d ON d.track_id = t.id"
-                                       " WHERE t.title LIKE ? ESCAPE '\\'"
-                                       " ORDER BY t.title LIMIT %1")
+                                       " WHERE t.title LIKE ? ESCAPE '\\'%1 ORDER BY t.title LIMIT %2")
+                            .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString())
                             .arg(SearchLimit),
                   {likePattern(term)});
 }

@@ -20,6 +20,8 @@ class LibraryModel : public QAbstractListModel
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
     // Bound to Downloads.revision, so the downloaded marks stay current.
     Q_PROPERTY(int revision READ revision WRITE setRevision NOTIFY revisionChanged)
+    // Only what plays without a network (Sources.showingDownloadedOnly).
+    Q_PROPERTY(bool downloadedOnly READ downloadedOnly WRITE setDownloadedOnly NOTIFY downloadedOnlyChanged)
     // Tracks of this list that are downloaded.
     Q_PROPERTY(int downloadedCount READ downloadedCount NOTIFY countChanged)
 
@@ -63,6 +65,8 @@ public:
     void setFilter(const QString &filter);
     int revision() const;
     void setRevision(int revision);
+    bool downloadedOnly() const;
+    void setDownloadedOnly(bool downloadedOnly);
     int downloadedCount() const;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -77,6 +81,7 @@ signals:
     void viewChanged();
     void filterChanged();
     void revisionChanged();
+    void downloadedOnlyChanged();
     void countChanged();
 
 private:
@@ -88,6 +93,7 @@ private:
     View m_view = Artists;
     QString m_filter;
     int m_revision = 0;
+    bool m_downloadedOnly = false;
     QVariantList m_rows;
 };
 

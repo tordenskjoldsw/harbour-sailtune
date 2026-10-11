@@ -26,6 +26,9 @@ class Source : public QObject
     Q_PROPERTY(int trackCount READ trackCount NOTIFY libraryChanged)
     Q_PROPERTY(int playlistCount READ playlistCount NOTIFY libraryChanged)
     Q_PROPERTY(bool canDownload READ canDownload CONSTANT)
+    // False after the last refresh found no connection to the server, as
+    // away from home without the VPN.
+    Q_PROPERTY(bool reachable READ reachable NOTIFY reachableChanged)
 
 public:
     // directory: the source's own folder in the app's private storage.
@@ -37,6 +40,9 @@ public:
     virtual QString name() const = 0;
     bool refreshing() const;
     QString problem() const;
+    bool reachable() const;
+    // "artists", "albums", "tracks" and "playlists" of the cache.
+    Q_INVOKABLE QVariantMap counts(bool downloadedOnly) const;
 
     int artistCount() const;
     int albumCount() const;
@@ -67,10 +73,12 @@ signals:
     void refreshingChanged();
     void problemChanged();
     void libraryChanged();
+    void reachableChanged();
 
 protected:
     void setRefreshing(bool refreshing);
     void setProblem(const QString &problem);
+    void setReachable(bool reachable);
     // Stores a refresh in the cache and tells the pages.
     void store(const LibrarySnapshot &snapshot);
 
@@ -80,6 +88,7 @@ private:
     QScopedPointer<LibraryDatabase> m_library;
     bool m_refreshing = false;
     QString m_problem;
+    bool m_reachable = true;
 };
 
 #endif // SOURCE_H

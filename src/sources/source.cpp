@@ -31,6 +31,24 @@ QString Source::problem() const
     return m_problem;
 }
 
+bool Source::reachable() const
+{
+    return m_reachable;
+}
+
+void Source::setReachable(bool reachable)
+{
+    if (m_reachable == reachable)
+        return;
+    m_reachable = reachable;
+    emit reachableChanged();
+}
+
+QVariantMap Source::counts(bool downloadedOnly) const
+{
+    return m_library->counts(downloadedOnly);
+}
+
 int Source::artistCount() const
 {
     return m_library->artistCount();

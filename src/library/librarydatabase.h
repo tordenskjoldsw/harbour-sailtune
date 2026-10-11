@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QVector>
 
 // What a source knows about its music, in a form both the phone's media
@@ -71,14 +72,18 @@ public:
     int playlistCount() const;
 
     // Each row is a map with the keys the list models expose.
-    QVariantList artists() const;
-    QVariantList albums(const QString &artistId) const;
-    QVariantList tracksOfAlbum(const QString &albumId) const;
-    QVariantList playlists() const;
-    QVariantList tracksOfPlaylist(const QString &playlistId) const;
-    QVariantList searchArtists(const QString &term) const;
-    QVariantList searchAlbums(const QString &term) const;
-    QVariantList searchTracks(const QString &term) const;
+    // With downloadedOnly, only what plays without a network: downloaded
+    // tracks and the albums, artists and playlists that hold one.
+    QVariantList artists(bool downloadedOnly) const;
+    QVariantList albums(const QString &artistId, bool downloadedOnly) const;
+    QVariantList tracksOfAlbum(const QString &albumId, bool downloadedOnly) const;
+    QVariantList playlists(bool downloadedOnly) const;
+    QVariantList tracksOfPlaylist(const QString &playlistId, bool downloadedOnly) const;
+    QVariantList searchArtists(const QString &term, bool downloadedOnly) const;
+    QVariantList searchAlbums(const QString &term, bool downloadedOnly) const;
+    QVariantList searchTracks(const QString &term, bool downloadedOnly) const;
+    // "artists", "albums", "tracks" and "playlists".
+    QVariantMap counts(bool downloadedOnly) const;
     // The tracks with these ids in this order; ids no longer cached are
     // left out.
     QVariantList tracksByIds(const QStringList &ids) const;

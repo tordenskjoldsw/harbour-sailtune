@@ -86,6 +86,20 @@ void LibraryModel::setRevision(int revision)
         reload();
 }
 
+bool LibraryModel::downloadedOnly() const
+{
+    return m_downloadedOnly;
+}
+
+void LibraryModel::setDownloadedOnly(bool downloadedOnly)
+{
+    if (m_downloadedOnly == downloadedOnly)
+        return;
+    m_downloadedOnly = downloadedOnly;
+    emit downloadedOnlyChanged();
+    reload();
+}
+
 int LibraryModel::downloadedCount() const
 {
     int count = 0;
@@ -101,34 +115,35 @@ void LibraryModel::reload(bool reset)
     m_rows.clear();
     const LibraryDatabase *library = m_source ? m_source->library() : nullptr;
     const bool searching = m_view == SearchArtists || m_view == SearchAlbums || m_view == SearchTracks;
+    const bool only = m_downloadedOnly;
     if (library && !(searching && m_filter.trimmed().size() < MinimumSearchLength)) {
         switch (m_view) {
         case Artists:
-            m_rows = library->artists();
+            m_rows = library->artists(only);
             break;
         case Albums:
-            m_rows = library->albums(QString());
+            m_rows = library->albums(QString(), only);
             break;
         case ArtistAlbums:
-            m_rows = library->albums(m_filter);
+            m_rows = library->albums(m_filter, only);
             break;
         case AlbumTracks:
-            m_rows = library->tracksOfAlbum(m_filter);
+            m_rows = library->tracksOfAlbum(m_filter, only);
             break;
         case Playlists:
-            m_rows = library->playlists();
+            m_rows = library->playlists(only);
             break;
         case PlaylistTracks:
-            m_rows = library->tracksOfPlaylist(m_filter);
+            m_rows = library->tracksOfPlaylist(m_filter, only);
             break;
         case SearchArtists:
-            m_rows = library->searchArtists(m_filter);
+            m_rows = library->searchArtists(m_filter, only);
             break;
         case SearchAlbums:
-            m_rows = library->searchAlbums(m_filter);
+            m_rows = library->searchAlbums(m_filter, only);
             break;
         case SearchTracks:
-            m_rows = library->searchTracks(m_filter);
+            m_rows = library->searchTracks(m_filter, only);
             break;
         }
     }

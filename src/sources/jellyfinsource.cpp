@@ -349,13 +349,16 @@ void JellyfinSource::finishRefresh(Jellyfin::Failure failure)
     case Jellyfin::Failure::None:
         setProblem(QString());
         setNeedsLogin(false);
+        setReachable(true);
         store(m_collecting);
         break;
     case Jellyfin::Failure::Unauthorized:
+        setReachable(true);
         setNeedsLogin(true);
         setProblem(tr("Log in again to update the library"));
         break;
     case Jellyfin::Failure::Network:
+        setReachable(false);
         setProblem(tr("The server cannot be reached"));
         break;
     case Jellyfin::Failure::BadAnswer:

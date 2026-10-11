@@ -16,6 +16,7 @@
 namespace {
 
 const QString ActiveKey = QStringLiteral("sources/active");
+const QString DownloadedOnlyKey = QStringLiteral("library/downloadedOnly");
 const QString ServersFile = QStringLiteral("/servers.json");
 const int MaxServers = 32;
 const qint64 MaxServersBytes = 1024 * 1024;
@@ -42,6 +43,31 @@ Sources::Sources(QObject *parent)
         if (source->id() == activeId)
             m_active = source;
     }
+    m_downloadedOnly = QSettings(configDirectory() + QStringLiteral("/settings.ini"), QSettings::IniFormat)
+                           .value(DownloadedOnlyKey, false)
+                           .toBool();
+    connect(this, &Sources::activeChanged, this, &Sources::showingDownloadedOnlyChanged);
+    connect(this, &Sources::downloadedOnlyChanged, this, &Sources::showingDownloadedOnlyChanged);
+}
+
+bool Sources::downloadedOnly() const
+{
+    return m_downloadedOnly;
+}
+
+void Sources::setDownloadedOnly(bool downloadedOnly)
+{
+    if (m_downloadedOnly == downloadedOnly)
+        return;
+    m_downloadedOnly = downloadedOnly;
+    QSettings(configDirectory() + QStringLiteral("/settings.ini"), QSettings::IniFormat)
+        .setValue(DownloadedOnlyKey, downloadedOnly);
+    emit downloadedOnlyChanged();
+}
+
+bool Sources::showingDownloadedOnly() const
+{
+    return m_active && m_active->canDownload() && (m_downloadedOnly || !m_active->reachable());
 }
 
 QString Sources::configDirectory() const
@@ -63,6 +89,10 @@ void Sources::add(Source *source)
 {
     m_sources.append(source);
     connect(source, &Source::nameChanged, this, &Sources::allChanged);
+    connect(source, &Source::reachableChanged, this, [this, source] {
+        if (source == m_active)
+            emit showingDownloadedOnlyChanged();
+    });
     if (auto *server = qobject_cast<JellyfinSource *>(source))
         connect(server, &JellyfinSource::needsLoginChanged, this, &Sources::allChanged);
 }
