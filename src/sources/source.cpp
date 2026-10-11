@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSet>
 
 Source::Source(const QString &id, const QString &directory, QObject *parent)
     : QObject(parent)
@@ -121,6 +122,37 @@ bool Source::canDownload() const
 QNetworkRequest Source::downloadRequest(const QVariantMap &) const
 {
     return QNetworkRequest();
+}
+
+void Source::keepCovers()
+{
+}
+
+QString Source::coverFile(const QString &image) const
+{
+    // "<item id>|<tag>"; both are plain hex from the server.
+    QString name = image;
+    name.replace(QLatin1Char('|'), QLatin1Char('-'));
+    if (name.isEmpty() || name.size() > 128)
+        return QString();
+    for (const QChar c : name) {
+        if (!(c.isLetterOrNumber() && c.unicode() < 128) && c != QLatin1Char('-'))
+            return QString();
+    }
+    return downloadDirectory() + QStringLiteral("/covers/") + name + QStringLiteral(".jpg");
+}
+
+void Source::pruneCovers(const QStringList &images) const
+{
+    QSet<QString> keep;
+    for (const QString &image : images)
+        keep.insert(QFileInfo(coverFile(image)).fileName());
+    QDir covers(downloadDirectory() + QStringLiteral("/covers"));
+    const QStringList files = covers.entryList(QDir::Files);
+    for (const QString &file : files) {
+        if (!keep.contains(file))
+            covers.remove(file);
+    }
 }
 
 QString Source::downloadDirectory() const

@@ -423,6 +423,8 @@ void Downloads::finish(Outcome outcome, const QString &problem)
             && m_source->library()->markDownloaded(id(m_track), m_finalPath, QFileInfo(m_finalPath).size());
         if (!stored)
             QFile::remove(part);
+        else
+            m_source->keepCovers();
         setProblem(QString());
         bumpRevision();
         break;
@@ -472,6 +474,7 @@ void Downloads::remove(const QVariantList &tracks)
             source->library()->forgetDownload(trackId);
         }
     }
+    source->keepCovers();
     saveQueue();
     bumpRevision();
     emit progressChanged();

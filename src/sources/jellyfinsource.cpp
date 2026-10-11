@@ -1,9 +1,12 @@
 #include "jellyfinsource.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkReply>
 #include <QSaveFile>
 #include <QUrlQuery>
 
@@ -28,6 +31,9 @@ const qint64 MaxPendingBytes = 2 * 1024 * 1024;
 const int MaxPlaylistName = 200;
 const QString PlayedAction = QStringLiteral("played");
 const QString FavoriteAction = QStringLiteral("favorite");
+// Covers kept for offline use, at the size the player page shows.
+const int KeptCoverSize = 512;
+const qint64 MaxCoverBytes = 5 * 1024 * 1024;
 
 // Text from the server, cut to a sane length.
 QString text(const QJsonObject &item, const char *key)
@@ -149,6 +155,68 @@ QUrl JellyfinSource::trackUrl(const QVariantMap &track) const
 }
 
 QUrl JellyfinSource::imageUrl(const QString &image, int size) const
+{
+    const QString cover = coverFile(image);
+    if (!cover.isEmpty() && QFileInfo::exists(cover))
+        return QUrl::fromLocalFile(cover);
+    return serverImageUrl(image, size);
+}
+
+void JellyfinSource::keepCovers()
+{
+    const QStringList images = library()->downloadedImages();
+    pruneCovers(images);
+    m_missingCovers.clear();
+    for (const QString &image : images) {
+        const QString cover = coverFile(image);
+        if (!cover.isEmpty() && !QFileInfo::exists(cover))
+            m_missingCovers.append(image);
+    }
+    if (!m_fetchingCovers)
+        fetchNextCover();
+}
+
+void JellyfinSource::fetchNextCover()
+{
+    if (m_missingCovers.isEmpty()) {
+        m_fetchingCovers = false;
+        return;
+    }
+    m_fetchingCovers = true;
+    const QString image = m_missingCovers.takeFirst();
+    QNetworkReply *reply = m_network.get(QNetworkRequest(serverImageUrl(image, KeptCoverSize)));
+    connect(reply, &QNetworkReply::downloadProgress, reply, [reply](qint64 received, qint64 total) {
+        if (received > MaxCoverBytes || total > MaxCoverBytes)
+            reply->abort();
+    });
+    connect(reply, &QNetworkReply::finished, this, [this, reply, image] {
+        reply->deleteLater();
+        const bool ok = reply->error() == QNetworkReply::NoError
+            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
+            && reply->header(QNetworkRequest::ContentTypeHeader).toString().startsWith(QLatin1String("image/"));
+        if (!ok && reply->error() != QNetworkReply::NoError
+            && reply->error() != QNetworkReply::OperationCanceledError
+            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 0) {
+            // No connection: the next download or refresh tries again.
+            m_missingCovers.clear();
+            m_fetchingCovers = false;
+            return;
+        }
+        const QByteArray data = ok ? reply->readAll() : QByteArray();
+        const QString cover = coverFile(image);
+        if (!data.isEmpty() && data.size() <= MaxCoverBytes && !cover.isEmpty()) {
+            QDir().mkpath(QFileInfo(cover).path());
+            QSaveFile file(cover);
+            if (file.open(QIODevice::WriteOnly)) {
+                file.write(data);
+                file.commit();
+            }
+        }
+        fetchNextCover();
+    });
+}
+
+QUrl JellyfinSource::serverImageUrl(const QString &image, int size) const
 {
     const int separator = image.indexOf(QLatin1Char('|'));
     if (separator <= 0)
@@ -383,6 +451,8 @@ void JellyfinSource::finishRefresh(Jellyfin::Failure failure)
         m_collecting.favoriteTrackIds = favoritesAfterRefresh();
         store(m_collecting);
         emit favoritesChanged();
+        // A changed cover has a new tag, so a new file.
+        keepCovers();
         break;
     case Jellyfin::Failure::Unauthorized:
         setReachable(true);

@@ -81,8 +81,12 @@ public:
     virtual bool canDownload() const;
     virtual QNetworkRequest downloadRequest(const QVariantMap &track) const;
     QString downloadDirectory() const;
-    // An image for QML, empty when there is none; size in pixels.
+    // An image for QML, empty when there is none; size in pixels. A kept
+    // cover comes from the phone.
     virtual QUrl imageUrl(const QString &image, int size) const = 0;
+    // Fetches the covers downloaded music needs offline that are missing,
+    // and deletes those it no longer needs.
+    virtual void keepCovers();
 
 signals:
     void nameChanged();
@@ -102,6 +106,11 @@ protected:
     void store(const LibrarySnapshot &snapshot);
     // Tells the server about a favorite set in the cache.
     virtual void sendFavorite(const QString &trackId, bool favorite);
+    // Where a kept cover lives, empty for an image name that is not safe
+    // as a file name.
+    QString coverFile(const QString &image) const;
+    // Deletes the kept covers that are not in images.
+    void pruneCovers(const QStringList &images) const;
 
 private:
     QString m_id;

@@ -108,6 +108,9 @@ public:
     // Albums with downloads, largest first: "id", "title", "artist",
     // "bytes", "tracks".
     QVariantList downloadedAlbums(int limit) const;
+    // The images of the albums, artists and playlists that have downloaded
+    // tracks: what must show without a network.
+    QStringList downloadedImages() const;
 
 private:
     int count(const char *table) const;

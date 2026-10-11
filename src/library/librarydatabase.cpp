@@ -435,6 +435,24 @@ QVariantList LibraryDatabase::downloadedAlbums(int limit) const
                   {limit});
 }
 
+QStringList LibraryDatabase::downloadedImages() const
+{
+    const QVariantList rows = select(QStringLiteral(
+        "SELECT al.image AS image FROM downloads d JOIN tracks t ON t.id = d.track_id"
+        " JOIN albums al ON al.id = t.album_id"
+        " UNION SELECT ar.image FROM downloads d JOIN tracks t ON t.id = d.track_id"
+        " JOIN albums al ON al.id = t.album_id JOIN artists ar ON ar.id = al.artist_id"
+        " UNION SELECT p.image FROM downloads d JOIN playlist_tracks pt ON pt.track_id = d.track_id"
+        " JOIN playlists p ON p.id = pt.playlist_id"), {});
+    QStringList images;
+    for (const QVariant &row : rows) {
+        const QString image = row.toMap().value(QStringLiteral("image")).toString();
+        if (!image.isEmpty())
+            images.append(image);
+    }
+    return images;
+}
+
 qint64 LibraryDatabase::downloadedBytes() const
 {
     const QVariantList rows = select(QStringLiteral("SELECT COALESCE(SUM(bytes), 0) AS bytes FROM downloads"), {});

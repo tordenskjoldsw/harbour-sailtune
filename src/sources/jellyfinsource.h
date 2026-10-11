@@ -49,6 +49,7 @@ public:
     void refresh() override;
     QUrl trackUrl(const QVariantMap &track) const override;
     QUrl imageUrl(const QString &image, int size) const override;
+    void keepCovers() override;
     bool canDownload() const override;
     QNetworkRequest downloadRequest(const QVariantMap &track) const override;
     void reportPlayed(const QString &trackId) override;
@@ -97,6 +98,8 @@ private:
     // does not know yet.
     QVector<QString> favoritesAfterRefresh() const;
     QString playlistProblem(Jellyfin::Failure failure) const;
+    QUrl serverImageUrl(const QString &image, int size) const;
+    void fetchNextCover();
 
     Config m_config;
     QString m_token;
@@ -110,6 +113,8 @@ private:
     QJsonArray m_pending;
     bool m_flushing = false;
     QList<std::function<void()>> m_afterFlush;
+    QStringList m_missingCovers;
+    bool m_fetchingCovers = false;
 };
 
 #endif // JELLYFINSOURCE_H
