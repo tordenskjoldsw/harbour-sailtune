@@ -1,0 +1,7 @@
+SailTune needs no account. It opens on the music on the phone: any music file in the Music folder shows under Artists, Albums and Playlists and plays at once.
+
+To try a server, use Jellyfin's public demo server: pull down on the first page, choose Sources, then pull down and choose "Add Jellyfin server". Address: demo.jellyfin.org/stable, user name: demo, password: empty. It has a few albums and playlists to browse, stream and download (pulley menu of an album). To see the offline mode, turn off the network after a download: the library then shows only the downloaded album, and it plays.
+
+Permissions: Audio is used to play music and to take the media keys and the lock screen controls. Music and MediaIndexing are used to read the phone's music from the system's media index and its album art; SailTune never changes these files. Internet is used only for the servers the user adds; the app works fully without one.
+
+Removing the demo server again: Sources, long press on the server, Remove.

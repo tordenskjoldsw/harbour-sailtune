@@ -1,0 +1,1 @@
+Music player for the music on your phone and on your own Jellyfin server: stream at home or over a VPN, download albums and playlists and play them without any network.
