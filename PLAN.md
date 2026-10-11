@@ -40,6 +40,9 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
 
 - Quick Connect (2026-10-11): logging in again with the code approved
   in another Jellyfin client works.
+- HTTPS (2026-10-11): Jellyfin's public demo server, typed without a
+  scheme, logs in over https and streams; the maintainer's http server
+  falls back to http with the note on the login page.
 
 Phases 4 and 5 are done; Phase 6 (review and submission) is under way.
 
