@@ -22,6 +22,20 @@ Page {
     SilicaListView {
         anchors.fill: parent
 
+        PullDownMenu {
+            visible: sources.active.canDownload
+            MenuItem {
+                text: qsTr("Remove download")
+                visible: tracks.downloadedCount > 0
+                onClicked: downloads.remove(tracks.rows())
+            }
+            MenuItem {
+                text: qsTr("Download album")
+                visible: tracks.downloadedCount < tracks.count
+                onClicked: downloads.download(tracks.rows())
+            }
+        }
+
         header: Column {
             width: parent.width
             spacing: Theme.paddingMedium
@@ -29,6 +43,10 @@ Page {
             PageHeader {
                 title: albumTitle
                 description: albumArtist
+            }
+
+            DownloadState {
+                tracks: tracks
             }
 
             AlbumArt {
@@ -46,6 +64,7 @@ Page {
             source: sources.active
             view: LibraryModel.AlbumTracks
             filter: albumId
+            revision: downloads.revision
             onCountChanged: {
                 var rows = this.rows()
                 var discs = {}
@@ -66,6 +85,7 @@ Page {
 
         delegate: TwoLineItem {
             showImage: false
+            downloaded: model.downloaded
             highlighted: down || player.trackId === model.id
             onClicked: player.playTracks(tracks.rows(), index)
             title: (model.number > 0 ? model.number + ". " : "") + model.title

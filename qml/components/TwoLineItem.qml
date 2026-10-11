@@ -9,6 +9,8 @@ ListItem {
     property bool showImage: true
     property string title
     property string description
+    // Marks a track that plays without a network.
+    property bool downloaded
 
     contentHeight: Theme.itemSizeMedium
 
@@ -32,13 +34,26 @@ ListItem {
             color: item.highlighted ? Theme.highlightColor : Theme.primaryColor
             text: item.title
         }
-        Label {
+        Row {
             width: parent.width
-            truncationMode: TruncationMode.Fade
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
-            text: item.description
-            visible: text.length > 0
+            spacing: Theme.paddingSmall
+            visible: item.description.length > 0 || item.downloaded
+
+            HighlightImage {
+                visible: item.downloaded
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.iconSizeExtraSmall
+                height: width
+                source: "image://theme/icon-s-device-download"
+                highlighted: item.highlighted
+            }
+            Label {
+                width: parent.width - (item.downloaded ? Theme.iconSizeExtraSmall + parent.spacing : 0)
+                truncationMode: TruncationMode.Fade
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+                text: item.description
+            }
         }
     }
 }
