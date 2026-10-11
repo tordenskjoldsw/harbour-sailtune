@@ -29,13 +29,12 @@ Page {
         PullDownMenu {
             busy: page.source.refreshing
             MenuItem {
-                text: qsTr("Sources")
-                onClicked: pageStack.push(Qt.resolvedUrl("SourcesPage.qml"))
+                text: qsTr("Settings")
+                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
             }
             MenuItem {
-                text: qsTr("Log in again")
-                visible: page.source.needsLogin === true
-                onClicked: pageStack.push(Qt.resolvedUrl("ServerPage.qml"), { "sourceId": page.source.id })
+                text: qsTr("Sources")
+                onClicked: pageStack.push(Qt.resolvedUrl("SourcesPage.qml"))
             }
             MenuItem {
                 text: qsTr("Update library")
@@ -57,6 +56,13 @@ Page {
                 description: page.source.refreshing ? qsTr("Updating the library")
                              : page.source.problem.length > 0 ? page.source.problem
                              : page.empty ? "" : qsTr("Tracks: %1").arg(page.counts.tracks)
+            }
+
+            Button {
+                visible: page.source.needsLogin === true
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Log in again")
+                onClicked: pageStack.push(Qt.resolvedUrl("ServerPage.qml"), { "sourceId": page.source.id })
             }
 
             TextSwitch {

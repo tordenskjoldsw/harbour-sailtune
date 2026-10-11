@@ -53,6 +53,7 @@ DISTFILES += \
     qml/pages/PlaylistsPage.qml \
     qml/pages/SearchPage.qml \
     qml/pages/ServerPage.qml \
+    qml/pages/SettingsPage.qml \
     qml/pages/SourcesPage.qml \
     rpm/harbour-sailtune.changes \
     rpm/harbour-sailtune.spec \
