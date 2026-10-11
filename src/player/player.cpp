@@ -62,9 +62,14 @@ Player::Player(Sources *sources, QObject *parent)
     connect(&m_media, &QMediaPlayer::seekableChanged, this, &Player::seekableChanged);
     connect(this, &Player::trackChanged, this, &Player::favoriteChanged);
     // QMediaPlayer::error is overloaded with the getter; the signal is
-    // picked by its signature.
+    // picked by its signature. The backend's own text is not shown, as it
+    // may name the stream URL, which carries the token.
     connect(&m_media, static_cast<void (QMediaPlayer::*)(QMediaPlayer::Error)>(&QMediaPlayer::error),
-            this, [this](QMediaPlayer::Error) { setProblem(m_media.errorString()); });
+            this, [this](QMediaPlayer::Error error) {
+                setProblem(error == QMediaPlayer::NetworkError || error == QMediaPlayer::AccessDeniedError
+                               ? tr("The server cannot play this track now")
+                               : tr("This track cannot be played"));
+            });
     connect(qApp, &QCoreApplication::aboutToQuit, this, &Player::saveQueue);
     connect(qGuiApp, &QGuiApplication::applicationStateChanged, this,
             [this](Qt::ApplicationState state) {
