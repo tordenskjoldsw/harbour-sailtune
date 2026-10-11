@@ -10,7 +10,14 @@ Page {
     objectName: "libraryPage"
 
     readonly property var source: sources.active
-    readonly property bool empty: source.trackCount === 0
+    readonly property bool onlyDownloaded: sources.showingDownloadedOnly
+    // Read again whenever the library, the downloads or the filter change.
+    readonly property var counts: {
+        source.trackCount
+        downloads.revision
+        return source.counts(onlyDownloaded)
+    }
+    readonly property bool empty: counts.tracks === 0
 
     allowedOrientations: Orientation.All
 
@@ -42,17 +49,33 @@ Page {
             }
         }
 
-        header: PageHeader {
-            title: page.source.name
-            description: page.source.refreshing ? qsTr("Updating the library")
-                         : page.source.problem.length > 0 ? page.source.problem
-                         : page.empty ? "" : qsTr("Tracks: %1").arg(page.source.trackCount)
+        header: Column {
+            width: parent.width
+
+            PageHeader {
+                title: page.source.name
+                description: page.source.refreshing ? qsTr("Updating the library")
+                             : page.source.problem.length > 0 ? page.source.problem
+                             : page.empty ? "" : qsTr("Tracks: %1").arg(page.counts.tracks)
+            }
+
+            TextSwitch {
+                visible: page.source.canDownload
+                automaticCheck: false
+                checked: page.onlyDownloaded
+                enabled: page.source.reachable
+                text: qsTr("Downloaded only")
+                description: page.source.reachable
+                             ? qsTr("Show only the music that plays without a network")
+                             : qsTr("The server cannot be reached, so only downloaded music shows")
+                onClicked: sources.downloadedOnly = !sources.downloadedOnly
+            }
         }
 
         model: page.empty ? [] : [
-            { "title": qsTr("Artists"), "count": page.source.artistCount, "page": "ArtistsPage.qml" },
-            { "title": qsTr("Albums"), "count": page.source.albumCount, "page": "AlbumsPage.qml" },
-            { "title": qsTr("Playlists"), "count": page.source.playlistCount, "page": "PlaylistsPage.qml" }
+            { "title": qsTr("Artists"), "count": page.counts.artists, "page": "ArtistsPage.qml" },
+            { "title": qsTr("Albums"), "count": page.counts.albums, "page": "AlbumsPage.qml" },
+            { "title": qsTr("Playlists"), "count": page.counts.playlists, "page": "PlaylistsPage.qml" }
         ]
 
         delegate: ListItem {
@@ -81,11 +104,14 @@ Page {
 
         ViewPlaceholder {
             enabled: page.empty && !page.source.refreshing
-            text: page.source.kind === "phone" ? qsTr("No music on this phone")
-                                               : qsTr("No music on this server")
-            hintText: page.source.kind === "phone"
-                      ? qsTr("Copy music into the Music folder, or add your server under Sources in the pulley menu.")
-                      : qsTr("Update the library from the pulley menu.")
+            text: page.onlyDownloaded ? qsTr("Nothing downloaded yet")
+                  : page.source.kind === "phone" ? qsTr("No music on this phone")
+                  : qsTr("No music on this server")
+            hintText: page.onlyDownloaded
+                      ? qsTr("Download albums or playlists from their pulley menu while the server is reachable.")
+                      : page.source.kind === "phone"
+                        ? qsTr("Copy music into the Music folder, or add your server under Sources in the pulley menu.")
+                        : qsTr("Update the library from the pulley menu.")
         }
 
         VerticalScrollDecorator {}

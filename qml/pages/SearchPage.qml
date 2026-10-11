@@ -11,6 +11,8 @@ Page {
         id: artists
 
         source: sources.active
+        downloadedOnly: sources.showingDownloadedOnly
+        revision: downloads.revision
         view: LibraryModel.SearchArtists
         filter: field.text
     }
@@ -18,6 +20,8 @@ Page {
         id: albums
 
         source: sources.active
+        downloadedOnly: sources.showingDownloadedOnly
+        revision: downloads.revision
         view: LibraryModel.SearchAlbums
         filter: field.text
     }
@@ -25,6 +29,8 @@ Page {
         id: tracks
 
         source: sources.active
+        downloadedOnly: sources.showingDownloadedOnly
+        revision: downloads.revision
         view: LibraryModel.SearchTracks
         filter: field.text
     }

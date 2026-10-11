@@ -40,6 +40,7 @@ Page {
             id: tracks
 
             source: sources.active
+            downloadedOnly: sources.showingDownloadedOnly
             view: LibraryModel.PlaylistTracks
             filter: playlistId
             revision: downloads.revision

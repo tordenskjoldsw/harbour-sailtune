@@ -16,6 +16,8 @@ Page {
             id: playlists
 
             source: sources.active
+            downloadedOnly: sources.showingDownloadedOnly
+            revision: downloads.revision
             view: LibraryModel.Playlists
         }
 

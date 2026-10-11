@@ -62,6 +62,7 @@ Page {
             id: tracks
 
             source: sources.active
+            downloadedOnly: sources.showingDownloadedOnly
             view: LibraryModel.AlbumTracks
             filter: albumId
             revision: downloads.revision

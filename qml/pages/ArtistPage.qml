@@ -16,6 +16,8 @@ Page {
 
         model: LibraryModel {
             source: sources.active
+            downloadedOnly: sources.showingDownloadedOnly
+            revision: downloads.revision
             view: LibraryModel.ArtistAlbums
             filter: artistId
         }
