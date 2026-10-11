@@ -36,6 +36,8 @@ public:
     void setDownloadedOnly(bool downloadedOnly);
     bool showingDownloadedOnly() const;
     JellyfinSource *jellyfin(const QString &id) const;
+    Source *source(const QString &id) const;
+    QList<Source *> list() const;
 
     Q_INVOKABLE void activate(const QString &id);
     // Logs out of a server, deletes its cache and token, and forgets it.

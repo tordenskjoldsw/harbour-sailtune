@@ -170,6 +170,20 @@ QVariantList Sources::all() const
     return list;
 }
 
+Source *Sources::source(const QString &id) const
+{
+    for (Source *source : m_sources) {
+        if (source->id() == id)
+            return source;
+    }
+    return nullptr;
+}
+
+QList<Source *> Sources::list() const
+{
+    return m_sources;
+}
+
 JellyfinSource *Sources::jellyfin(const QString &id) const
 {
     for (Source *source : m_sources) {

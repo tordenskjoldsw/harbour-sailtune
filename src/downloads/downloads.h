@@ -1,12 +1,12 @@
 #ifndef DOWNLOADS_H
 #define DOWNLOADS_H
 
-#include <QElapsedTimer>
 #include <QFile>
 #include <QList>
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QPointer>
+#include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -14,15 +14,17 @@ class QNetworkReply;
 class Source;
 class Sources;
 
-// Downloads tracks of the active source for playing without a network,
-// one after the other while the app runs. A file is written beside its
-// final name, checked against the size the server announced and only
-// then renamed; downloads stop before the phone's free space falls below
-// the reserve.
+// Downloads tracks of a source for playing without a network, one after
+// the other while the app runs. The queue survives closing the app and
+// losing the connection: without the server the downloads pause, keep
+// the part of the file they have, retry every minute and continue from
+// that byte. A file is checked against its size and only then renamed;
+// downloads pause before the phone's free space falls below the reserve.
 class Downloads : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    Q_PROPERTY(bool paused READ paused NOTIFY runningChanged)
     Q_PROPERTY(int waiting READ waiting NOTIFY progressChanged)
     Q_PROPERTY(QString current READ current NOTIFY progressChanged)
     Q_PROPERTY(int percent READ percent NOTIFY progressChanged)
@@ -35,6 +37,7 @@ public:
     ~Downloads() override;
 
     bool running() const;
+    bool paused() const;
     int waiting() const;
     QString current() const;
     int percent() const;
@@ -44,9 +47,21 @@ public:
     // Queues the tracks (LibraryModel rows) of the active source that are
     // not downloaded yet.
     Q_INVOKABLE void download(const QVariantList &tracks);
-    // Deletes the downloaded files of these tracks.
+    // Deletes the downloaded files of these tracks of the active source
+    // and drops them from the queue.
     Q_INVOKABLE void remove(const QVariantList &tracks);
-    Q_INVOKABLE void cancel();
+    // Tries a paused queue again at once.
+    Q_INVOKABLE void resume();
+
+    // For the settings: "used" (bytes of every source's downloads) and
+    // "free" (bytes free on the phone).
+    Q_INVOKABLE QVariantMap storage() const;
+    // The active source's albums with downloads, largest first: "id",
+    // "title", "artist", "bytes", "tracks".
+    Q_INVOKABLE QVariantList largestAlbums(int limit) const;
+    Q_INVOKABLE void removeAlbum(const QString &albumId);
+    // Every download of every source, and the queue.
+    Q_INVOKABLE void removeAll();
 
 signals:
     void runningChanged();
@@ -55,10 +70,17 @@ signals:
     void revisionChanged();
 
 private:
+    enum class Outcome { Done, Pause, Skip, Restart };
+
     void startNext();
-    void finishCurrent(bool ok, const QString &problem);
+    void finish(Outcome outcome, const QString &problem);
+    void pause(const QString &problem);
     void setProblem(const QString &problem);
     void bumpRevision();
+    void saveQueue() const;
+    void loadQueue();
+    QString queuePath() const;
+    QString partPath(const QVariantMap &track) const;
 
     Sources *m_sources;
     QPointer<Source> m_source;
@@ -68,8 +90,15 @@ private:
     QPointer<QNetworkReply> m_reply;
     QFile m_file;
     QString m_finalPath;
+    // Bytes the part file had when this request started.
+    qint64 m_offset = 0;
     qint64 m_expected = -1;
     qint64 m_received = 0;
+    // Why this side aborted the reply, if it did, and what follows.
+    QString m_abortProblem;
+    Outcome m_abortOutcome = Outcome::Pause;
+    bool m_paused = false;
+    QTimer m_retry;
     QString m_problem;
     int m_revision = 0;
 };

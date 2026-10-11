@@ -94,6 +94,10 @@ public:
     // The downloaded file of a track, or empty.
     QString downloadedFile(const QString &trackId) const;
     qint64 downloadedBytes() const;
+    bool forgetAllDownloads();
+    // Albums with downloads, largest first: "id", "title", "artist",
+    // "bytes", "tracks".
+    QVariantList downloadedAlbums(int limit) const;
 
 private:
     int count(const char *table) const;
