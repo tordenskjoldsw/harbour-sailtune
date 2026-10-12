@@ -1,14 +1,27 @@
 # SailTune
 
-A music player for Sailfish OS for the music on your own server. It
-streams while the server is reachable, at home or over a VPN, and plays
-albums and playlists downloaded to the phone without any network.
+![SailTune: music player for Sailfish OS](docs/images/cover.png)
+
+A music player for Sailfish OS for the music on the phone and on your
+own server. It streams while the server is reachable, at home or over a
+VPN, and plays albums and playlists downloaded to the phone without any
+network.
 
 **Status:** ready for its first release in the Jolla Store, 0.5.2. The
 plan is in [PLAN.md](PLAN.md), the security review in
 [docs/security-review-2026-10.md](docs/security-review-2026-10.md), the
 privacy policy in [PRIVACY.md](PRIVACY.md) and how to report a security
 problem in [SECURITY.md](SECURITY.md).
+
+<p align="center">
+  <img src="docs/images/screenshot-1-albums.jpg" width="30%" alt="Album list with covers and the mini player">
+  <img src="docs/images/screenshot-2-album.jpg" width="30%" alt="An album with its tracks">
+  <img src="docs/images/screenshot-3-player.jpg" width="30%" alt="Now playing with cover, seek bar and controls">
+</p>
+
+The screenshots show Jellyfin's public demo server; the covers are
+Binärpilot's "You Can't Stop Da Funk" (CC BY-NC-ND 2.5) and "Promo"
+(CC BY-NC-ND 2.0).
 
 ## Features
 
