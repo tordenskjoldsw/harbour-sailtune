@@ -2,8 +2,8 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import harbour.sailtune 1.0
 
-// The space the downloads use, the state of the download queue, and the
-// way to the About page.
+// Where new downloads go, the space they use, the state of the download
+// queue, and the way to the About page.
 Page {
     id: page
 
@@ -14,6 +14,7 @@ Page {
     Connections {
         target: downloads
         onRevisionChanged: page.storage = downloads.storage()
+        onLocationChanged: page.storage = downloads.storage()
     }
 
     RemorsePopup {
@@ -33,6 +34,24 @@ Page {
 
             SectionHeader { text: qsTr("Storage") }
 
+            ComboBox {
+                // Offered with a card in the phone, and kept visible while
+                // the chosen card is out.
+                visible: downloads.cardPresent || downloads.onCard
+                label: qsTr("Save downloads on")
+                currentIndex: downloads.onCard ? 1 : 0
+                menu: ContextMenu {
+                    MenuItem {
+                        text: qsTr("Phone")
+                        onClicked: downloads.onCard = false
+                    }
+                    MenuItem {
+                        text: qsTr("Memory card")
+                        onClicked: downloads.onCard = true
+                    }
+                }
+            }
+
             DetailItem {
                 label: qsTr("Downloads")
                 value: Format.formatFileSize(page.storage.used)
@@ -41,6 +60,11 @@ Page {
                 label: qsTr("Free on the phone")
                 value: Format.formatFileSize(page.storage.free)
             }
+            DetailItem {
+                visible: page.storage.cardFree >= 0
+                label: qsTr("Free on the memory card")
+                value: Format.formatFileSize(page.storage.cardFree)
+            }
 
             Label {
                 x: Theme.horizontalPageMargin
@@ -48,7 +72,21 @@ Page {
                 wrapMode: Text.Wrap
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryHighlightColor
-                text: qsTr("Downloads pause before less than 2 GB stay free on the phone.")
+                text: !downloads.cardPresent && !downloads.onCard
+                      ? qsTr("Downloads pause before less than 2 GB stay free on the phone.")
+                      : downloads.onCard
+                        ? qsTr("Downloads pause before less than 2 GB stay free where they are saved. Downloads saved before stay where they are. Other apps with access to the memory card can read the downloads on it.")
+                        : qsTr("Downloads pause before less than 2 GB stay free where they are saved. Downloads saved before stay where they are.")
+            }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                visible: downloads.onCard && !downloads.cardPresent
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: Theme.errorColor
+                text: qsTr("The memory card is not in the phone. Its downloads play again when it is back.")
             }
 
             Button {

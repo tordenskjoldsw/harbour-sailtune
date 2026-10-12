@@ -101,8 +101,12 @@ public:
     // Downloads outlive a refresh: their table is never replaced.
     bool markDownloaded(const QString &trackId, const QString &file, qint64 bytes);
     bool forgetDownload(const QString &trackId);
-    // The downloaded file of a track, or empty.
+    // The downloaded file of a track, or empty; also when the file is on a
+    // memory card that is not in the phone.
     QString downloadedFile(const QString &trackId) const;
+    // The path prefixes under which downloads can be read now; the others
+    // count as not downloaded in every list.
+    bool setPresentRoots(const QStringList &roots);
     qint64 downloadedBytes() const;
     bool forgetAllDownloads();
     // The images of the albums, artists and playlists that have downloaded

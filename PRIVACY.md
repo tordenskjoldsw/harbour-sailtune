@@ -50,11 +50,17 @@ cannot read:
 - A copy of each library (artists, albums, tracks, playlists,
   favorites), so the app opens quickly and works offline.
 - Downloaded tracks and their covers, and plays and favorites that wait
-  to be sent.
+  to be sent. If you choose the memory card for downloads in the
+  settings, the tracks downloaded from then on are saved there instead,
+  in the hidden folder `.sailtune`; the card has no file permissions,
+  so other apps allowed to use the memory card can read them.
 - The settings, the playing queue and the position in the current track.
 
 Removing a server logs it out and deletes all of the above for it,
-including its downloads. Uninstalling SailTune deletes everything.
+including its downloads, also those on a memory card that is in the
+phone. Uninstalling SailTune deletes everything in its app directory;
+downloads on a memory card stay until you delete the `.sailtune`
+folder.
 
 ## Permissions
 
@@ -63,6 +69,8 @@ including its downloads. Uninstalling SailTune deletes everything.
 - **Music and MediaIndexing:** to find the music on the phone and its
   album art.
 - **Internet:** only for the servers you add.
+- **RemovableMedia:** to save downloads on the memory card, only if
+  you choose it in the settings.
 
 ## Contact
 

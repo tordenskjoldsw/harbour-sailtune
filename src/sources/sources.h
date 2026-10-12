@@ -53,6 +53,8 @@ signals:
     void allChanged();
     void downloadedOnlyChanged();
     void showingDownloadedOnlyChanged();
+    // A server was forgotten; its files outside its folder go too.
+    void removed(const QString &id);
 
 private:
     QString configDirectory() const;

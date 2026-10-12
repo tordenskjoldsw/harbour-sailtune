@@ -56,7 +56,19 @@ const char *const Schema[] = {
     "CREATE INDEX IF NOT EXISTS tracks_by_album ON tracks (album_id)",
 };
 
-// Every track query joins the album as "a" and the downloads as "d".
+// Per connection: the path prefixes under which downloads can be read
+// now, and the downloads below them. A download on a memory card that is
+// not in the phone counts as not downloaded until the card is back; with
+// no prefixes set, every download counts.
+const char *const TemporarySchema[] = {
+    "CREATE TEMP TABLE IF NOT EXISTS present_roots (root TEXT NOT NULL)",
+    "CREATE TEMP VIEW IF NOT EXISTS present_downloads AS SELECT d.* FROM downloads d"
+    " WHERE NOT EXISTS (SELECT 1 FROM present_roots)"
+    " OR EXISTS (SELECT 1 FROM present_roots r WHERE substr(d.file, 1, length(r.root)) = r.root)",
+};
+
+// Every track query joins the album as "a" and the present downloads as
+// "d".
 const char TrackColumns[] =
     "t.id AS id, t.title AS title, t.album_id AS albumId, t.album AS album,"
     " t.artist AS artist, t.disc AS disc, t.number AS number, t.seconds AS seconds,"
@@ -75,6 +87,10 @@ LibraryDatabase::LibraryDatabase(const QString &path)
         return;
     QSqlQuery query(database);
     for (const char *statement : Schema) {
+        if (!query.exec(QLatin1String(statement)))
+            return;
+    }
+    for (const char *statement : TemporarySchema) {
         if (!query.exec(QLatin1String(statement)))
             return;
     }
@@ -230,7 +246,7 @@ QVariantList LibraryDatabase::select(const QString &sql, const QVariantList &val
 
 // An album or an artist counts as downloaded when one of its tracks is.
 const char AlbumHasDownload[] =
-    "EXISTS (SELECT 1 FROM tracks tx JOIN downloads dx ON dx.track_id = tx.id"
+    "EXISTS (SELECT 1 FROM tracks tx JOIN present_downloads dx ON dx.track_id = tx.id"
     " WHERE tx.album_id = al.id)";
 
 QVariantList LibraryDatabase::artists(bool downloadedOnly) const
@@ -265,7 +281,7 @@ QVariantList LibraryDatabase::tracksOfAlbum(const QString &albumId, bool downloa
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
-                                       " LEFT JOIN downloads d ON d.track_id = t.id"
+                                       " LEFT JOIN present_downloads d ON d.track_id = t.id"
                                        " WHERE t.album_id = ?%1 ORDER BY t.disc, t.number, t.title")
                             .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
                   {albumId});
@@ -277,7 +293,7 @@ QVariantList LibraryDatabase::playlists(bool downloadedOnly) const
                       "SELECT p.id AS id, p.name AS title, COUNT(pt.track_id) AS count, p.image AS image"
                       " FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id%1"
                       " GROUP BY p.id%2 ORDER BY p.sort_name")
-                      .arg(downloadedOnly ? QStringLiteral(" AND pt.track_id IN (SELECT track_id FROM downloads)")
+                      .arg(downloadedOnly ? QStringLiteral(" AND pt.track_id IN (SELECT track_id FROM present_downloads)")
                                           : QString(),
                            downloadedOnly ? QStringLiteral(" HAVING COUNT(pt.track_id) > 0") : QString()),
                   {});
@@ -288,7 +304,7 @@ QVariantList LibraryDatabase::tracksOfPlaylist(const QString &playlistId, bool d
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM playlist_tracks pt JOIN tracks t ON t.id = pt.track_id"
                                        " LEFT JOIN albums a ON a.id = t.album_id"
-                                       " LEFT JOIN downloads d ON d.track_id = t.id"
+                                       " LEFT JOIN present_downloads d ON d.track_id = t.id"
                                        " WHERE pt.playlist_id = ?%1 ORDER BY pt.position")
                             .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
                   {playlistId});
@@ -299,7 +315,7 @@ QVariantList LibraryDatabase::favoriteTracks(bool downloadedOnly) const
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM favorites fav JOIN tracks t ON t.id = fav.track_id"
                                        " LEFT JOIN albums a ON a.id = t.album_id"
-                                       " LEFT JOIN downloads d ON d.track_id = t.id"
+                                       " LEFT JOIN present_downloads d ON d.track_id = t.id"
                                        " WHERE 1%1 ORDER BY t.artist, t.album, t.disc, t.number")
                             .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString()),
                   {});
@@ -363,7 +379,7 @@ QVariantMap LibraryDatabase::counts(bool downloadedOnly) const
     counts.insert(QStringLiteral("albums"), albums(QString(), downloadedOnly).size());
     counts.insert(QStringLiteral("playlists"), playlists(downloadedOnly).size());
     const QVariantList tracks = select(
-        downloadedOnly ? QStringLiteral("SELECT COUNT(*) AS n FROM tracks t JOIN downloads d ON d.track_id = t.id")
+        downloadedOnly ? QStringLiteral("SELECT COUNT(*) AS n FROM tracks t JOIN present_downloads d ON d.track_id = t.id")
                        : QStringLiteral("SELECT COUNT(*) AS n FROM tracks"),
         {});
     counts.insert(QStringLiteral("tracks"), tracks.isEmpty() ? 0 : tracks.first().toMap().value(QStringLiteral("n")));
@@ -376,7 +392,7 @@ QVariantList LibraryDatabase::tracksByIds(const QStringList &ids) const
     for (const QString &id : ids) {
         const QVariantList found = select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                                               + QStringLiteral(" FROM tracks t LEFT JOIN albums a"
-                                                               " ON a.id = t.album_id LEFT JOIN downloads d"
+                                                               " ON a.id = t.album_id LEFT JOIN present_downloads d"
                                                                " ON d.track_id = t.id WHERE t.id = ?"),
                                           {id});
         if (!found.isEmpty())
@@ -414,6 +430,27 @@ QString LibraryDatabase::downloadedFile(const QString &trackId) const
     const QVariantList rows = select(QStringLiteral("SELECT file FROM downloads WHERE track_id = ?"),
                                      {trackId});
     return rows.isEmpty() ? QString() : rows.first().toMap().value(QStringLiteral("file")).toString();
+}
+
+bool LibraryDatabase::setPresentRoots(const QStringList &roots)
+{
+    if (!m_open)
+        return false;
+    QSqlDatabase database = QSqlDatabase::database(m_connection);
+    if (!database.transaction())
+        return false;
+    QSqlQuery query(database);
+    bool ok = query.exec(QStringLiteral("DELETE FROM present_roots"))
+        && query.prepare(QStringLiteral("INSERT INTO present_roots VALUES (?)"));
+    for (int i = 0; ok && i < roots.size(); ++i) {
+        query.addBindValue(notNull(roots.at(i)));
+        ok = query.exec();
+    }
+    if (!ok) {
+        database.rollback();
+        return false;
+    }
+    return database.commit();
 }
 
 bool LibraryDatabase::forgetAllDownloads()
@@ -474,7 +511,7 @@ QVariantList LibraryDatabase::searchTracks(const QString &term, bool downloadedO
 {
     return select(QStringLiteral("SELECT ") + QLatin1String(TrackColumns)
                       + QStringLiteral(" FROM tracks t LEFT JOIN albums a ON a.id = t.album_id"
-                                       " LEFT JOIN downloads d ON d.track_id = t.id"
+                                       " LEFT JOIN present_downloads d ON d.track_id = t.id"
                                        " WHERE t.title LIKE ? ESCAPE '\\'%1 ORDER BY t.title LIMIT %2")
                             .arg(downloadedOnly ? QStringLiteral(" AND d.track_id IS NOT NULL") : QString())
                             .arg(SearchLimit),

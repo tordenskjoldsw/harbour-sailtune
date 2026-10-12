@@ -64,6 +64,12 @@ QString extensionFor(const QString &contentType)
     return QStringLiteral("audio");
 }
 
+bool savedFileExists(Source *source, const QString &trackId)
+{
+    const QString file = source->library()->downloadedFile(trackId);
+    return !file.isEmpty() && QFileInfo(file).isFile();
+}
+
 bool enoughSpace(const QString &directory, qint64 needed)
 {
     const QStorageInfo storage(directory);
@@ -119,6 +125,15 @@ Downloads::Downloads(Sources *sources, QObject *parent)
                 if (configuration.state().testFlag(QNetworkConfiguration::Active))
                     retrySoon();
             });
+    connect(&m_location, &DownloadLocation::changed, this, &Downloads::onLocationChanged);
+    connect(m_sources, &Sources::allChanged, this, &Downloads::applyPresentRoots);
+    // A forgotten server's downloads on the card go with it.
+    connect(m_sources, &Sources::removed, this, [this](const QString &sourceId) {
+        const QString directory = m_location.cardDirectoryFor(sourceId);
+        if (!directory.isEmpty())
+            QDir(directory).removeRecursively();
+    });
+    applyPresentRoots();
     loadQueue();
 }
 
@@ -170,6 +185,59 @@ int Downloads::revision() const
     return m_revision;
 }
 
+bool Downloads::onCard() const
+{
+    return m_location.onCard();
+}
+
+void Downloads::setOnCard(bool onCard)
+{
+    if (m_location.onCard() == onCard)
+        return;
+    // A part file stays on the side it was started on, where it is of no
+    // use any more.
+    if (m_reply) {
+        disconnect(m_reply, nullptr, this, nullptr);
+        m_reply->abort();
+        m_reply = nullptr;
+        m_file.close();
+        m_queue.prepend(m_track);
+        m_track.clear();
+    }
+    if (m_source && !m_queue.isEmpty())
+        removeParts(m_source, id(m_queue.first()));
+    m_location.setOnCard(onCard);
+}
+
+bool Downloads::cardPresent() const
+{
+    return !m_location.cardRoot().isEmpty();
+}
+
+void Downloads::onLocationChanged()
+{
+    applyPresentRoots();
+    bumpRevision();
+    emit locationChanged();
+    if (!running() && !m_queue.isEmpty())
+        resume();
+}
+
+void Downloads::applyPresentRoots()
+{
+    const QStringList roots = m_location.presentRoots();
+    for (Source *source : m_sources->list()) {
+        if (source->canDownload())
+            source->library()->setPresentRoots(roots);
+    }
+}
+
+QString Downloads::spaceProblem() const
+{
+    return m_location.onCard() ? tr("Downloads paused: less than 2 GB free on the memory card")
+                               : tr("Downloads paused: less than 2 GB free on the phone");
+}
+
 void Downloads::setProblem(const QString &problem)
 {
     if (m_problem == problem)
@@ -192,7 +260,17 @@ QString Downloads::queuePath() const
 
 QString Downloads::partPath(const QVariantMap &track) const
 {
-    return m_source->downloadDirectory() + QLatin1Char('/') + id(track) + PartSuffix;
+    return m_directory + QLatin1Char('/') + id(track) + PartSuffix;
+}
+
+void Downloads::removeParts(Source *source, const QString &trackId) const
+{
+    if (!safeId(trackId))
+        return;
+    QFile::remove(source->downloadDirectory() + QLatin1Char('/') + trackId + PartSuffix);
+    const QString card = m_location.cardDirectoryFor(source->id());
+    if (!card.isEmpty())
+        QFile::remove(card + QLatin1Char('/') + trackId + PartSuffix);
 }
 
 void Downloads::saveQueue() const
@@ -271,8 +349,9 @@ void Downloads::download(const QVariantList &tracks)
             break;
         const QVariantMap track = value.toMap();
         const QString trackId = id(track);
-        if (!safeId(trackId) || !source->library()->downloadedFile(trackId).isEmpty()
-            || id(m_track) == trackId)
+        // A download on a card that is not in the phone is saved again
+        // where downloads go now.
+        if (!safeId(trackId) || savedFileExists(source, trackId) || id(m_track) == trackId)
             continue;
         bool queued = false;
         for (const QVariantMap &waiting : m_queue)
@@ -318,13 +397,20 @@ void Downloads::startNext()
         return;
     }
     m_track = m_queue.takeFirst();
-    const QString directory = m_source->downloadDirectory();
-    QDir().mkpath(directory);
-    QFile::setPermissions(directory, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-    if (!enoughSpace(directory, 0)) {
+    m_directory = m_location.directoryFor(m_source->id(), m_source->downloadDirectory());
+    if (m_directory.isEmpty()) {
         m_queue.prepend(m_track);
         m_track.clear();
-        pause(tr("Downloads paused: less than 2 GB free on the phone"));
+        pause(tr("Downloads paused: the memory card is not in the phone"));
+        return;
+    }
+    QDir().mkpath(m_directory);
+    // The card's file system keeps no owners; this is for the phone.
+    QFile::setPermissions(m_directory, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    if (!enoughSpace(m_directory, 0)) {
+        m_queue.prepend(m_track);
+        m_track.clear();
+        pause(spaceProblem());
         return;
     }
     m_file.setFileName(partPath(m_track));
@@ -385,11 +471,11 @@ void Downloads::startNext()
             abortReply(Outcome::Skip, tr("A track larger than 2 GB was skipped"));
             return;
         }
-        if (m_expected > 0 && !enoughSpace(m_source->downloadDirectory(), m_expected - m_offset)) {
-            abortReply(Outcome::Pause, tr("Downloads paused: less than 2 GB free on the phone"));
+        if (m_expected > 0 && !enoughSpace(m_directory, m_expected - m_offset)) {
+            abortReply(Outcome::Pause, spaceProblem());
             return;
         }
-        m_finalPath = m_source->downloadDirectory() + QLatin1Char('/') + id(m_track) + QLatin1Char('.')
+        m_finalPath = m_directory + QLatin1Char('/') + id(m_track) + QLatin1Char('.')
             + extensionFor(m_reply->header(QNetworkRequest::ContentTypeHeader).toString());
     });
     connect(m_reply, &QNetworkReply::readyRead, this, [this] {
@@ -495,8 +581,7 @@ void Downloads::remove(const QVariantList &tracks)
             m_file.close();
             m_track.clear();
         }
-        if (safeId(trackId))
-            QFile::remove(source->downloadDirectory() + QLatin1Char('/') + trackId + PartSuffix);
+        removeParts(source, trackId);
         const QString file = source->library()->downloadedFile(trackId);
         if (!file.isEmpty()) {
             QFile::remove(file);
@@ -519,6 +604,8 @@ QVariantMap Downloads::storage() const
     result.insert(QStringLiteral("used"), used);
     result.insert(QStringLiteral("free"),
                   QStorageInfo(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).bytesAvailable());
+    const QString card = m_location.cardRoot();
+    result.insert(QStringLiteral("cardFree"), card.isEmpty() ? qint64(-1) : QStorageInfo(card).bytesAvailable());
     return result;
 }
 
@@ -544,6 +631,9 @@ void Downloads::removeAll()
         if (!source->canDownload())
             continue;
         QDir(source->downloadDirectory()).removeRecursively();
+        const QString card = m_location.cardDirectoryFor(source->id());
+        if (!card.isEmpty())
+            QDir(card).removeRecursively();
         source->library()->forgetAllDownloads();
     }
     setProblem(QString());

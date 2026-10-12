@@ -4,6 +4,7 @@ CONFIG += sailfishapp
 QT += network sql dbus concurrent multimedia
 
 HEADERS += \
+    src/downloads/downloadlocation.h \
     src/downloads/downloads.h \
     src/library/librarydatabase.h \
     src/library/librarymodel.h \
@@ -17,6 +18,7 @@ HEADERS += \
 
 SOURCES += \
     src/main.cpp \
+    src/downloads/downloadlocation.cpp \
     src/downloads/downloads.cpp \
     src/library/librarydatabase.cpp \
     src/library/librarymodel.cpp \

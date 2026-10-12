@@ -231,6 +231,7 @@ void Sources::remove(const QString &id)
     server->deleteLater();
     QDir(directory).removeRecursively();
     saveServers();
+    emit removed(id);
     emit allChanged();
 }
 

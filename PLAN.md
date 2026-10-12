@@ -143,7 +143,8 @@ src/   C++ (Qt 5.6): one client per server family behind a common
   server's downloads and cache.
 - **Neutral identities**: every cached item and download carries the
   server's local id and the item id as text, since Jellyfin and Subsonic
-  ids look different; downloads live in `downloads/<server id>/`.
+  ids look different; downloads live in `downloads/<server id>/`, on
+  the phone or, by choice, on the memory card.
 
 Qt only, no Rust core (section 14). Data that crosses from the server
 is parsed in one place in the Jellyfin client, with hard limits.
@@ -160,8 +161,10 @@ is parsed in one place in the Jellyfin client, with hard limits.
   reads only the cache.
 - **Downloads**: original files (Jellyfin `/Audio/{id}/stream?static=true`,
   Subsonic `download`; a quality choice follows in Phase 7) in
-  `downloads/<server id>/` in the app's private storage, named
-  `<item id>.<extension>`; the cache records which tracks are offline.
+  `downloads/<server id>/` in the app's private storage, or in
+  `.sailtune/downloads/<server id>/` on the memory card when the user
+  chose it, named `<item id>.<extension>`; the cache records each
+  file's path, so downloads on both sides play.
 - **Playback**: one QtMultimedia `Audio` with the music role and a queue
   in C++; a track starts once the player has stopped after the previous
   one (spike, section 11). Amber.Mpris for the lock screen; the cover
@@ -175,7 +178,10 @@ Allowed APIs checked 2026-10-10 against the Harbour list: QtMultimedia
 libQt5Concurrent, Amber.Mpris 1.0 (QML), Sailfish.Secrets,
 Nemo.Notifications, Nemo.KeepAlive. Sailjail permissions: Audio and
 Internet; Music, to play the phone's music and read its album art;
-MediaIndexing, to read the phone's music from the system's media index.
+MediaIndexing, to read the phone's music from the system's media index;
+RemovableMedia, to save downloads on the memory card (checked
+2026-10-12 against the Harbour list and the validator of the 5.1
+target).
 
 ## 6. Login and session
 
@@ -460,6 +466,17 @@ Decided:
   no doubles in the system's media player. The public Music folder was
   weighed (other apps and the PC over USB could use the files) and left
   for a later "export to the Music folder".
+- Downloads on the memory card (2026-10-12, before the first store
+  submission): a choice in the settings, the phone by default. New
+  downloads go to the chosen side; those saved before stay where they
+  are. On the card they live in the hidden folder `.sailtune` with a
+  `.nomedia` file, which the media index skips (verified on the device:
+  no entry for it in the index, while the card's Music folder is
+  indexed). The card's file system keeps no owners, so other apps with
+  the RemovableMedia permission can read them; the settings and the
+  privacy policy say so. While the card is out, its downloads count as
+  not downloaded and the queue waits for it. Needs the RemovableMedia
+  permission.
 - Storage (2026-10-10): no fixed limit by default, as in the common
   streaming apps; the user chooses what goes offline. Downloads stop
   with a clear message before the phone's free space falls below a
