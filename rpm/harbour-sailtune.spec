@@ -1,6 +1,6 @@
 Name:       harbour-sailtune
 
-Summary:    Music player for your own music server, also offline
+Summary:    Music player for the phone's music and your own server
 Version:    0.0.1
 Release:    1
 License:    MIT
@@ -19,8 +19,9 @@ BuildRequires:  pkgconfig(Qt5Multimedia)
 BuildRequires:  desktop-file-utils
 
 %description
-SailTune plays the music on your own server: streamed while the server
-is reachable, or downloaded to play without a network.
+SailTune plays the music on the phone and the music on your own server:
+streamed while the server is reachable, or downloaded to play without a
+network.
 
 %prep
 %setup -q -n %{name}-%{version}
