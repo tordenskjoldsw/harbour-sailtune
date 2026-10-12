@@ -60,6 +60,8 @@ public:
     // Queues the tracks (LibraryModel rows) of the active source that are
     // not downloaded yet.
     Q_INVOKABLE void download(const QVariantList &tracks);
+    // Queues every track of the active source that is not downloaded yet.
+    Q_INVOKABLE void downloadAll();
     // Deletes the downloaded files of these tracks of the active source
     // and drops them from the queue.
     Q_INVOKABLE void remove(const QVariantList &tracks);

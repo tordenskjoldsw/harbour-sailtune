@@ -368,6 +368,13 @@ void Downloads::download(const QVariantList &tracks)
     resume();
 }
 
+void Downloads::downloadAll()
+{
+    Source *source = m_sources->active();
+    if (source && source->canDownload())
+        download(source->library()->missingTracks());
+}
+
 void Downloads::resume()
 {
     m_retry.stop();

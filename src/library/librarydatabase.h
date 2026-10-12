@@ -98,6 +98,10 @@ public:
     // left out.
     QVariantList tracksByIds(const QStringList &ids) const;
 
+    // Every track that is not downloaded or not on hand, album by album:
+    // "id", "title".
+    QVariantList missingTracks() const;
+
     // Downloads outlive a refresh: their table is never replaced.
     bool markDownloaded(const QString &trackId, const QString &file, qint64 bytes);
     bool forgetDownload(const QString &trackId);

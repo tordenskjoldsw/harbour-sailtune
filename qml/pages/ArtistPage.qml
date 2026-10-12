@@ -27,6 +27,7 @@ Page {
             image: model.image
             title: model.title
             description: model.year > 0 ? model.year : ""
+            downloaded: model.downloaded
             onClicked: pageStack.push(Qt.resolvedUrl("AlbumPage.qml"),
                                       { "albumId": model.id, "albumTitle": model.title,
                                         "albumArtist": model.artist, "albumImage": model.image })
