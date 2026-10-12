@@ -1,3 +1,9 @@
+* Mon Oct 12 2026 Tobias Kaminski <instance_maintainer@protonmail.com> - 0.5.1-1
+- About page with the version, the source code, the privacy policy,
+  the security review and where to report a problem
+- The settings show only the storage, the download queue and About;
+  an album's download is removed on its page
+
 * Mon Oct 12 2026 Tobias Kaminski <instance_maintainer@protonmail.com> - 0.5.0-1
 - First release: the music on the phone and on your own Jellyfin
   server, streamed or downloaded to play without a network
