@@ -1,2 +1,16 @@
+* Mon Oct 12 2026 Tobias Kaminski <instance_maintainer@protonmail.com> - 0.5.0-1
+- First release: the music on the phone and on your own Jellyfin
+  server, streamed or downloaded to play without a network
+- Log in with the password or Quick Connect; the password is never
+  stored
+- Albums, playlists and favorites download in their original quality,
+  pause and resume, and stop before the free space runs low
+- Without a network the library shows only downloaded music, with its
+  covers
+- Plays and favorites go to the server, made offline they follow later;
+  add to a playlist or start a new one
+- Lock screen, cover and Bluetooth controls; the track and position are
+  kept when the app is closed
+
 * Sat Oct 10 2026 Tobias Kaminski <instance_maintainer@protonmail.com> - 0.0.1-1
 - Name check build for the Jolla Store

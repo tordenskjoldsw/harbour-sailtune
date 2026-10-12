@@ -1,7 +1,7 @@
 Name:       harbour-sailtune
 
 Summary:    Music player for the phone's music and your own server
-Version:    0.0.1
+Version:    0.5.0
 Release:    1
 License:    MIT
 URL:        https://github.com/tordenskjoldsw/harbour-sailtune
