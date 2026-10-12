@@ -4,8 +4,7 @@ A music player for Sailfish OS for the music on your own server. It
 streams while the server is reachable, at home or over a VPN, and plays
 albums and playlists downloaded to the phone without any network.
 
-**Status:** ready for its first release, 0.5.0, which is being prepared
-for the Jolla Store. The plan is in [PLAN.md](PLAN.md), the security
+**Status:** ready for its first release in the Jolla Store, 0.5.1. The plan is in [PLAN.md](PLAN.md), the security
 review in [docs/security-review-2026-10.md](docs/security-review-2026-10.md)
 and the privacy policy in [PRIVACY.md](PRIVACY.md).
 

@@ -399,7 +399,9 @@ Decided:
   SailToken, one minor version per finished phase; Phase 6 adds no
   features. 0.5.x then carries fixes from the store's QA, 0.6.0 the
   first features after it (OpenSubsonic). Not 1.0.0 while the server
-  families planned for v1 are not all there.
+  families planned for v1 are not all there. 0.5.0 was tagged but never
+  submitted: the About page and the shorter settings came before the
+  submission, so the store gets 0.5.1 first (2026-10-12).
 
 - Reading the phone's music (2026-10-10): from the system's media index,
   no own tag reader. The source spike read 27 songs with title, artist,
