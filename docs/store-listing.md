@@ -56,7 +56,10 @@ Phone. The app supports both orientations.
   archive.org item uhzcdr002); the description credits both. Leap
   Fidei's "Nemesis" (2024) has no free license found, so no screenshot
   shows it, neither the album list nor the mini player.
-- Cover image (optional): 1080x540.
+- Cover image (optional): 1080x540, `docs/images/cover.png`: the icon
+  rendered from `icons/harbour-sailtune.svg`, the name and the player
+  page from the screenshots (Binärpilot's CC-licensed cover), in Open
+  Sans, in the style of SailVault's and SailToken's covers.
 
 ## Contact details
 
