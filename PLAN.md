@@ -27,7 +27,7 @@ v1 serves the phone's music and Jellyfin, OpenSubsonic follows (section
 - Downloads that pause and resume (2026-10-11): with WLAN off in the
   middle of an album they pause and continue from the byte where they
   stopped, soon after WLAN is back; the queue survives closing the app.
-  Settings show the space used, the free space and the largest albums.
+  Settings show the space used and the free space.
 
 - Plays, favorites and playlists (2026-10-11): a track played on the
   phone shows on the Jellyfin dashboard; favorites go from the phone to
@@ -218,7 +218,7 @@ MediaIndexing, to read the phone's music from the system's media index.
   page, and resumes or restarts after the app was closed (Range
   requests; Jellyfin answered range requests for seeking in the spike).
 - Downloads stop before the phone's free space falls below a reserve;
-  settings show the space used, the largest albums and "remove all
+  settings show the space used, the free space and "remove all
   downloads" (section 14).
 - Without a network the app switches to the downloads by itself and says
   so; streaming needs no extra mode.
@@ -462,7 +462,9 @@ Decided:
   streaming apps; the user chooses what goes offline. Downloads stop
   with a clear message before the phone's free space falls below a
   reserve (2 GB as a start). Settings show the space SailTune uses, the
-  largest albums and "remove all downloads". A user-set limit can follow.
+  free space and "remove all downloads"; the list of the largest albums
+  was dropped as too much (2026-10-12), an album's download is removed
+  on its page. A user-set limit can follow.
 - Playlists (2026-10-10, widened 2026-10-11): play and download in v1;
   also "add to playlist" (while listening or from a track) and "new
   playlist" on the phone before the first store release, online only.

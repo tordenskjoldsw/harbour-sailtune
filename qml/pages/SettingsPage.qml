@@ -2,25 +2,18 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import harbour.sailtune 1.0
 
-// The space the downloads use, the largest downloaded albums of the
-// active source, the state of the download queue, and the way to the
-// About page.
+// The space the downloads use, the state of the download queue, and the
+// way to the About page.
 Page {
     id: page
 
     property var storage: downloads.storage()
-    property var albums: downloads.largestAlbums(10)
-
-    function reload() {
-        storage = downloads.storage()
-        albums = downloads.largestAlbums(10)
-    }
 
     allowedOrientations: Orientation.All
 
     Connections {
         target: downloads
-        onRevisionChanged: page.reload()
+        onRevisionChanged: page.storage = downloads.storage()
     }
 
     RemorsePopup {
@@ -56,51 +49,6 @@ Page {
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryHighlightColor
                 text: qsTr("Downloads pause before less than 2 GB stay free on the phone.")
-            }
-
-            SectionHeader {
-                visible: page.albums.length > 0
-                text: qsTr("Largest downloaded albums")
-            }
-
-            Repeater {
-                model: page.albums
-
-                ListItem {
-                    id: albumItem
-
-                    width: column.width
-                    contentHeight: Theme.itemSizeMedium
-                    menu: ContextMenu {
-                        MenuItem {
-                            text: qsTr("Remove download")
-                            onClicked: albumItem.remorseDelete(function() {
-                                downloads.removeAlbum(modelData.id)
-                            })
-                        }
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: Theme.horizontalPageMargin
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-
-                        Label {
-                            width: parent.width
-                            truncationMode: TruncationMode.Fade
-                            color: albumItem.highlighted ? Theme.highlightColor : Theme.primaryColor
-                            textFormat: Text.PlainText
-                            text: modelData.title
-                        }
-                        Label {
-                            width: parent.width
-                            truncationMode: TruncationMode.Fade
-                            font.pixelSize: Theme.fontSizeExtraSmall
-                            color: Theme.secondaryColor
-                            text: qsTr("%1, tracks: %2").arg(Format.formatFileSize(modelData.bytes)).arg(modelData.tracks)
-                        }
-                    }
-                }
             }
 
             Button {

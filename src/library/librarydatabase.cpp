@@ -424,17 +424,6 @@ bool LibraryDatabase::forgetAllDownloads()
     return query.exec(QStringLiteral("DELETE FROM downloads"));
 }
 
-QVariantList LibraryDatabase::downloadedAlbums(int limit) const
-{
-    return select(QStringLiteral(
-                      "SELECT al.id AS id, al.title AS title, al.artist AS artist,"
-                      " SUM(d.bytes) AS bytes, COUNT(d.track_id) AS tracks"
-                      " FROM downloads d JOIN tracks t ON t.id = d.track_id"
-                      " JOIN albums al ON al.id = t.album_id"
-                      " GROUP BY al.id ORDER BY bytes DESC LIMIT ?"),
-                  {limit});
-}
-
 QStringList LibraryDatabase::downloadedImages() const
 {
     const QVariantList rows = select(QStringLiteral(

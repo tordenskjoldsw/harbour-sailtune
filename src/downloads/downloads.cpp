@@ -528,19 +528,6 @@ double Downloads::sourceBytes(const QString &sourceId) const
     return source ? double(source->library()->downloadedBytes()) : 0;
 }
 
-QVariantList Downloads::largestAlbums(int limit) const
-{
-    Source *source = m_sources->active();
-    return source ? source->library()->downloadedAlbums(limit) : QVariantList();
-}
-
-void Downloads::removeAlbum(const QString &albumId)
-{
-    Source *source = m_sources->active();
-    if (source)
-        remove(source->library()->tracksOfAlbum(albumId, true));
-}
-
 void Downloads::removeAll()
 {
     if (m_reply) {

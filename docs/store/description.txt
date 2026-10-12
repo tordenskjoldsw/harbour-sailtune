@@ -3,7 +3,7 @@ SailTune plays the music on your Sailfish phone and the music on your own Jellyf
 Features
 - The music on your phone, with the album art Sailfish found: artists, albums, playlists and search.
 - Jellyfin servers: log in with your password or with Quick Connect, so the password need not be typed on the phone. Several servers can be added; one is active at a time.
-- Downloads: albums, playlists and favorites, in their original quality. Downloads continue where they stopped after the connection or the app was gone, and pause before the phone's free space runs low. The settings show the space used and the largest albums.
+- Downloads: albums, playlists and favorites, in their original quality. Downloads continue where they stopped after the connection or the app was gone, and pause before the phone's free space runs low. The settings show the space used and the space free on the phone.
 - Without a network the library shows only downloaded music, with its covers; a switch shows only downloaded music at any time.
 - Player on every page with 10-second skips, lock screen and cover controls, Bluetooth controls, and the exact track and position kept when the app is closed.
 - Favorites and plays go to your server and come back from it. Made without a network, they are sent when the server can be reached again.

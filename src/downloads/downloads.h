@@ -59,10 +59,6 @@ public:
     Q_INVOKABLE QVariantMap storage() const;
     // Bytes of one source's downloads, as a number QML can hold.
     Q_INVOKABLE double sourceBytes(const QString &sourceId) const;
-    // The active source's albums with downloads, largest first: "id",
-    // "title", "artist", "bytes", "tracks".
-    Q_INVOKABLE QVariantList largestAlbums(int limit) const;
-    Q_INVOKABLE void removeAlbum(const QString &albumId);
     // Every download of every source, and the queue.
     Q_INVOKABLE void removeAll();
 
