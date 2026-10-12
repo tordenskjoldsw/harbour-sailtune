@@ -407,7 +407,9 @@ Decided:
   first features after it (OpenSubsonic). Not 1.0.0 while the server
   families planned for v1 are not all there. 0.5.0 was tagged but never
   submitted: the About page and the shorter settings came before the
-  submission, so the store gets 0.5.1 first (2026-10-12).
+  submission, so the store gets 0.5.1 first (2026-10-12). 0.5.1 was
+  not submitted either: downloads on the memory card and "Download all
+  albums" came first, so the store gets 0.5.2 (2026-10-12).
 
 - Reading the phone's music (2026-10-10): from the system's media index,
   no own tag reader. The source spike read 27 songs with title, artist,
