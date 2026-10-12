@@ -3,7 +3,8 @@ import Sailfish.Silica 1.0
 import harbour.sailtune 1.0
 
 // The space the downloads use, the largest downloaded albums of the
-// active source, the state of the download queue, and the version.
+// active source, the state of the download queue, and the way to the
+// About page.
 Page {
     id: page
 
@@ -132,13 +133,21 @@ Page {
 
             SectionHeader { text: qsTr("About") }
 
-            DetailItem {
-                label: qsTr("Version")
-                value: appVersion
-            }
-            DetailItem {
-                label: qsTr("License")
-                value: "MIT"
+            BackgroundItem {
+                id: aboutItem
+
+                width: parent.width
+                onClicked: pageStack.push(Qt.resolvedUrl("AboutPage.qml"))
+
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    anchors.verticalCenter: parent.verticalCenter
+                    textFormat: Text.PlainText
+                    truncationMode: TruncationMode.Fade
+                    color: aboutItem.highlighted ? Theme.highlightColor : Theme.primaryColor
+                    text: qsTr("About SailTune")
+                }
             }
         }
 
