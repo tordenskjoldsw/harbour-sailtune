@@ -50,9 +50,12 @@ Phone. The app supports both orientations.
 - Screenshots: at least 1080 px wide, taken on the Jolla Phone (1032 px
   wide, volume up and down together) and scaled to 1080 px with
   Lanczos. They show Jellyfin's public demo server rather than the
-  maintainer's library; that its covers may be shown in a store listing
-  (much of its music is published under Creative Commons) is unverified
-  for each album, so prefer pages whose covers are checked.
+  maintainer's library, and only the covers of Binärpilot's "You Can't
+  Stop Da Funk" (Candy Mind Records, 2006, CC BY-NC-ND 2.5, archive.org
+  item CANDY019, MusicBrainz) and "Promo" (µHz, 2004, CC BY-NC-ND 2.0,
+  archive.org item uhzcdr002); the description credits both. Leap
+  Fidei's "Nemesis" (2024) has no free license found, so no screenshot
+  shows it, neither the album list nor the mini player.
 - Cover image (optional): 1080x540.
 
 ## Contact details

@@ -22,4 +22,6 @@ Permissions
 
 SailTune is free software under the MIT license. The source code and the security review are on GitHub.
 
+Screenshots: music and covers from Jellyfin's demo server: "You Can't Stop Da Funk" by Binärpilot (Candy Mind Records), CC BY-NC-ND 2.5; "Promo" by Binärpilot (µHz), CC BY-NC-ND 2.0.
+
 SailTune is an independent app and not affiliated with Jellyfin.
